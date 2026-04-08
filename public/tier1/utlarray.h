@@ -31,7 +31,7 @@ public:
 	static const bool IsUtlArray = true; // Used to match this at compiletime 		
 };
 
-#if defined( GNUC ) && defined( DEBUG )
+#if defined( __GNUC__ ) && defined( DEBUG )
 // gcc in debug doesn't optimize away the need for the storage of IsUtlArray so make one here
 //  as this is in a shared header use SELECTANY to make it throw away the dupe symbols
 const bool base_array_t::IsUtlArray SELECTANY;

@@ -329,7 +329,7 @@ typedef void * HINSTANCE;
 #ifdef _WIN32
         #define DECL_ALIGN(x) __declspec(align(x))
 
-#elif GNUC
+#elif defined(__GNUC__)
 	#define DECL_ALIGN(x) __attribute__((aligned(x)))
 #else
         #define DECL_ALIGN(x) /* */
@@ -348,7 +348,7 @@ typedef void * HINSTANCE;
 	#define ALIGN16_POST
 	#define ALIGN32_POST
 	#define ALIGN128_POST
-#elif defined( GNUC )
+#elif defined(__GNUC__)
 	// gnuc has the align decoration at the end
 	#define ALIGN4
 	#define ALIGN8 
@@ -378,7 +378,7 @@ typedef void * HINSTANCE;
 //-----------------------------------------------------------------------------
 // Stack-based allocation related helpers
 //-----------------------------------------------------------------------------
-#if defined( GNUC )
+#if defined(__GNUC__)
 	#define stackalloc( _size )		alloca( ALIGN_VALUE( _size, 16 ) )
 #ifdef _LINUX
 	#define mallocsize( _p )	( malloc_usable_size( _p ) )
@@ -407,7 +407,7 @@ typedef void * HINSTANCE;
 	#define RESTRICT __restrict
 	#define RESTRICT_FUNC __declspec(restrict)
 	#define FMTFUNCTION( a, b )
-#elif defined(GNUC)
+#elif defined(__GNUC__)
 	#define SELECTANY __attribute__((weak))
 	#if defined(LINUX) && !defined(DEDICATED)
 		#define RESTRICT
@@ -442,7 +442,7 @@ typedef void * HINSTANCE;
 
 #define DLL_LOCAL
 
-#elif defined GNUC
+#elif defined(__GNUC__)
 // Used for dll exporting and importing
 #define  DLL_EXPORT   extern "C" __attribute__ ((visibility("default")))
 #define  DLL_IMPORT   extern "C"
@@ -456,6 +456,15 @@ typedef void * HINSTANCE;
 #define  DLL_GLOBAL_IMPORT   extern
 
 #define  DLL_LOCAL __attribute__ ((visibility("hidden")))
+
+#elif defined( __EMSCRIPTEN__ )
+
+#define  DLL_EXPORT				extern   
+#define  DLL_IMPORT				extern
+#define  DLL_CLASS_EXPORT  
+#define  DLL_CLASS_IMPORT   
+#define  DLL_GLOBAL_EXPORT   
+#define  DLL_GLOBAL_IMPORT   
 
 #elif defined(_XBOX)
 

@@ -50,7 +50,7 @@
 #ifdef VECTOR_PARANOIA
 #define CHECK_VALID( _v)	MathlibAssert( (_v).IsValid() )
 #else
-#ifdef GNUC
+#if defined(__GNUC__)
 #define CHECK_VALID( _v)
 #else
 #define CHECK_VALID( _v)	0

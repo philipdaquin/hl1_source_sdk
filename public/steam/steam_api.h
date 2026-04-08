@@ -42,7 +42,7 @@
 	#else
 	#define S_API extern "C" __declspec( dllimport ) 
 	#endif // STEAM_API_EXPORTS
-#elif defined( GNUC )
+#elif defined( __GNUC__ )
 	#if defined( STEAM_API_EXPORTS )
 	#define S_API extern "C" __attribute__ ((visibility("default"))) 
 	#else

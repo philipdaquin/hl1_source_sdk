@@ -16,7 +16,7 @@
 #include <mathlib/vector.h>
 #include <mathlib/mathlib.h>
 
-#if defined(GNUC)
+#if defined(__GNUC__)
 #define USE_STDC_FOR_SIMD 0
 #else
 #define USE_STDC_FOR_SIMD 0

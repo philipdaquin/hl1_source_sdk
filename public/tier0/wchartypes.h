@@ -20,7 +20,7 @@
 // Temporarily turn off Valve defines
 #include "tier0/valve_off.h"
 
-#if !defined(_WCHAR_T_DEFINED) && !defined(GNUC)
+#if !defined(_WCHAR_T_DEFINED) && !defined(__GNUC__)
 typedef unsigned short wchar_t;
 #define _WCHAR_T_DEFINED
 #endif
@@ -70,7 +70,11 @@ typedef wchar_t wchar;
 #define _tfopen fopen
 #define _stprintf sprintf 
 #define _ftprintf fprintf
+#ifdef __EMSCRIPTEN__
+#define _vsntprintf vsnprintf
+#else
 #define _vsntprintf _vsnprintf
+#endif
 #define _tprintf printf
 #define _sntprintf _snprintf
 #define _T(s) s

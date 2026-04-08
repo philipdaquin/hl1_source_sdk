@@ -99,6 +99,8 @@ inline void ThreadPause()
 	__asm pause;
 #elif POSIX
 	__asm __volatile("pause");
+#elif defined( __EMSCRIPTEN__ )
+	__asm __volatile("yield");
 #else
 #error "implement me"
 #endif
@@ -396,6 +398,9 @@ private:
 #elif POSIX
 	pthread_mutex_t m_Mutex;
 	pthread_mutexattr_t m_Attr;
+#elif defined( __EMSCRIPTEN__ )
+	pthread_mutex_t m_Mutex;
+	pthread_mutexattr_t m_Attr;
 #else
 #error
 #endif
@@ -612,6 +617,10 @@ protected:
 #ifdef _WIN32
 	HANDLE m_hSyncObject;
 #elif POSIX
+	pthread_mutex_t	m_Mutex;
+	pthread_cond_t	m_Condition;
+	bool m_bInitalized;
+#elif defined( __EMSCRIPTEN__ )
 	pthread_mutex_t	m_Mutex;
 	pthread_cond_t	m_Condition;
 	bool m_bInitalized;
