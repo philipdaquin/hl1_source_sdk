@@ -1,2 +1,22 @@
 # macOS garbage
 .DS_Store
+
+# Build output
+build-wasm/
+build-*/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# WASM output
+*.wasm
+*.js
+*.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
