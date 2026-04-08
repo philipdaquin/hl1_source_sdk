@@ -2005,7 +2005,7 @@ bool V_ExtractFilePath (const char *path, char *dest, int destSize )
 		src--;
 	}
 
-	int copysize = min( src - path, destSize - 1 );
+	int copysize = min( (int)(src - path), destSize - 1 );
 	memcpy( dest, path, copysize );
 	dest[copysize] = 0;
 

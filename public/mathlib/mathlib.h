@@ -454,12 +454,15 @@ void inline SinCos( float radians, float *sine, float *cosine )
 #elif defined( PLATFORM_WINDOWS_PC64 )
 	*sine = sin( radians );
 	*cosine = cos( radians );
-#elif defined( POSIX )
+#elif defined( POSIX ) && !defined( __EMSCRIPTEN__ )
 	double __cosr, __sinr;
 	__asm ("fsincos" : "=t" (__cosr), "=u" (__sinr) : "0" (radians));
 
   	*sine = __sinr;
   	*cosine = __cosr;
+#elif defined( __EMSCRIPTEN__ )
+	*sine = sin( radians );
+	*cosine = cos( radians );
 #endif
 }
 
@@ -1214,6 +1217,8 @@ FORCEINLINE int RoundFloatToInt(float f)
 	};
 	flResult = __fctiw( f );
 	return pResult[1];
+#elif defined( __EMSCRIPTEN__ )
+	return (int)lrintf(f);
 #else
 #error Unknown architecture
 #endif
@@ -1271,10 +1276,12 @@ FORCEINLINE unsigned long RoundFloatToUnsignedLong(float f)
 			fld f
 			fistp       qword ptr nResult
 		}
-	#elif POSIX
+	#elif POSIX && !defined( __EMSCRIPTEN__ )
 		__asm __volatile__ (
 			"fistpl %0;": "=m" (nResult): "t" (f) : "st"
 		);
+	#elif defined( __EMSCRIPTEN__ )
+		return (unsigned long)roundf(f);
 	#endif
 
 		return *((unsigned long*)nResult);
@@ -2166,7 +2173,7 @@ inline bool CloseEnough( const Vector &a, const Vector &b, float epsilon = EQUAL
 // Fast compare
 // maxUlps is the maximum error in terms of Units in the Last Place. This 
 // specifies how big an error we are willing to accept in terms of the value
-// of the least significant digit of the floating point number’s 
+// of the least significant digit of the floating point numberï¿½s 
 // representation. maxUlps can also be interpreted in terms of how many 
 // representable floats we are willing to accept between A and B. 
 // This function will allow maxUlps-1 floats between A and B.

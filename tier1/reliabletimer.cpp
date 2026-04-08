@@ -6,6 +6,10 @@
 
 #include "tier1/reliabletimer.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 int64 CReliableTimer::sm_nPerformanceFrequency = 0;
 bool CReliableTimer::sm_bUseQPC = false;
 
@@ -82,6 +86,8 @@ int64 CReliableTimer::GetPerformanceCountNow()
 	uint64 ulNow;
 	SYS_TIMEBASE_GET( ulNow );
 	return ulNow;
+#elif defined( __EMSCRIPTEN__ )
+	return (int64)(emscripten_get_now() * 1000000.0);
 #else
 	uint64 un64;
 	 __asm__ __volatile__ (

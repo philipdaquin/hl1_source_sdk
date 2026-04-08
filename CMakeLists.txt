@@ -128,6 +128,15 @@ include( cmake/lib/tier0.cmake )
 include( cmake/lib/vstdlib.cmake )
 
 #-----------------------------------------------------------------
+# Emscripten-specific settings
+#-----------------------------------------------------------------
+if( EMSCRIPTEN )
+	message( STATUS "Emscripten detected - adding WASM-specific compile options" )
+	set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msimd128 -D__SSE__ -D__SSE2__" )
+	set( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msimd128 -D__SSE__ -D__SSE2__" )
+endif()
+
+#-----------------------------------------------------------------
 # Static libraries
 #-----------------------------------------------------------------
 add_subdirectory( tier1 )

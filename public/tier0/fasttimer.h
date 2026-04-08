@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//========= Copyright ï¿½ 1996-2005, Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -13,6 +13,10 @@
 
 #include <assert.h>
 #include "tier0/platform.h"
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 
 PLATFORM_INTERFACE int64 g_ClockSpeed;
@@ -282,6 +286,9 @@ inline void CCycleCount::Sample()
 		mov		[ecx],     eax
 		mov		[ecx+4],   edx
 	}
+#elif defined __EMSCRIPTEN__
+	double now = emscripten_get_now();
+	m_Int64 = (int64)(now * 1000000.0);
 #elif defined POSIX
        __asm__ __volatile__ (  
 			"rdtsc\n\t"

@@ -94,6 +94,17 @@
 	
 	// GoldSrc is OpenGL and doesn't use DX->GL layer
 	#define IsPlatformOpenGL() true
+#elif defined(__EMSCRIPTEN__)
+	#define IsPC() true
+	#define IsWindows() false
+	#define IsConsole() false
+	#define IsX360() false
+	#define IsPS3() false
+	#define IsLinux() false
+	#define IsOSX() false
+	#define IsPosix() true
+	#define IsPlatformOpenGL() true
+	#define PLATFORM_WASM 1
 #elif defined(POSIX)
 	#define IsPC() true
 	#define IsWindows() false
@@ -668,6 +679,22 @@ inline T DWordSwapC( T dw )
    return *((T*)&temp);
 }
 
+inline uint64 QWordSwapC( uint64 val )
+{
+   uint64 temp;
+
+   temp  =   (val & 0x00000000000000FFULL) << 56;
+   temp |= ((val & 0x000000000000FF00ULL) << 40);
+   temp |= ((val & 0x0000000000FF0000ULL) << 24);
+   temp |= ((val & 0x00000000FF000000ULL) <<  8);
+   temp |= ((val & 0x000000FF00000000ULL) >>  8);
+   temp |= ((val & 0x0000FF0000000000ULL) >> 24);
+   temp |= ((val & 0x00FF000000000000ULL) >> 40);
+   temp |= ((val & 0xFF00000000000000ULL) >> 56);
+
+   return temp;
+}
+
 //-------------------------------------
 // Fast swaps
 //-------------------------------------
@@ -721,6 +748,10 @@ inline float DWordSwapAsm<float>( float f )
 //-------------------------------------
 
 #if defined(__i386__) && !defined(VALVE_LITTLE_ENDIAN)
+#define VALVE_LITTLE_ENDIAN 1
+#endif
+
+#if defined(__EMSCRIPTEN__) && !defined(VALVE_LITTLE_ENDIAN)
 #define VALVE_LITTLE_ENDIAN 1
 #endif
 
@@ -787,7 +818,7 @@ inline short LittleShort( short val )	{ int test = 1; return ( *(char *)&test ==
 inline uint16 LittleWord( uint16 val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : WordSwap( val ); }
 inline long LittleLong( long val )		{ int test = 1; return ( *(char *)&test == 1 ) ? val : DWordSwap( val ); }
 inline uint32 LittleDWord( uint32 val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : DWordSwap( val ); }
-inline uint64 LittleQWord( uint64 val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : QWordSwap( val ); }
+inline uint64 LittleQWord( uint64 val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : QWordSwapC( val ); }
 inline short SwapShort( short val )					{ return WordSwap( val ); }
 inline uint16 SwapWord( uint16 val )				{ return WordSwap( val ); }
 inline long SwapLong( long val )					{ return DWordSwap( val ); }
