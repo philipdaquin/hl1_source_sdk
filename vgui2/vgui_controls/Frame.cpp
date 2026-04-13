@@ -1648,21 +1648,12 @@ void Frame::ApplySchemeSettings(IScheme *pScheme)
 {
 	// always chain back
 	BaseClass::ApplySchemeSettings(pScheme);
-	
+
+	/*
 	SetOverridableColor( &_titleBarFgColor, GetSchemeColor("FrameTitleBar.TextColor", pScheme) );
 	SetOverridableColor( &_titleBarBgColor, GetSchemeColor("FrameTitleBar.BgColor", pScheme) );
 	SetOverridableColor( &_titleBarDisabledFgColor, GetSchemeColor("FrameTitleBar.DisabledTextColor", pScheme) );
 	SetOverridableColor( &_titleBarDisabledBgColor, GetSchemeColor("FrameTitleBar.DisabledBgColor", pScheme) );
-
-	const char *font = NULL;
-	if ( m_bSmallCaption )
-	{
-		font = pScheme->GetResourceString("FrameTitleBar.SmallFont");
-	}
-	else
-	{
-		font = pScheme->GetResourceString("FrameTitleBar.Font");
-	}
 
 	HFont titlefont;
 	if ( m_hCustomTitleFont )
@@ -1671,9 +1662,17 @@ void Frame::ApplySchemeSettings(IScheme *pScheme)
 	}
 	else
 	{
+		const char *font = NULL;
+		if ( m_bSmallCaption )
+		{
+			font = pScheme->GetResourceString("FrameTitleBar.SmallFont");
+		}
+		else
+		{
+			font = pScheme->GetResourceString("FrameTitleBar.Font");
+		}
 		titlefont = pScheme->GetFont((font && *font) ? font : "Default", IsProportional());
 	}
-
 	_title->SetFont( titlefont );
 	_title->ResizeImageToContent();
 
@@ -1687,7 +1686,6 @@ void Frame::ApplySchemeSettings(IScheme *pScheme)
 	{
 		marfont = pScheme->GetFont( "Marlett", IsProportional() );
 	}
-
 	_minimizeButton->SetFont(marfont);
 	_maximizeButton->SetFont(marfont);
 	_minimizeToSysTrayButton->SetFont(marfont);
@@ -1696,28 +1694,48 @@ void Frame::ApplySchemeSettings(IScheme *pScheme)
 
 	m_flTransitionEffectTime = atof(pScheme->GetResourceString("Frame.TransitionEffectTime"));
 	m_flFocusTransitionEffectTime = atof(pScheme->GetResourceString("Frame.FocusTransitionEffectTime"));
-
 	SetOverridableColor( &m_InFocusBgColor, pScheme->GetColor("Frame.BgColor", GetBgColor()) );
 	SetOverridableColor( &m_OutOfFocusBgColor, pScheme->GetColor("Frame.OutOfFocusBgColor", m_InFocusBgColor) );
+	SetBorder(pScheme->GetBorder("FrameBorder"));
+	*/
+	
+	SetOverridableColor( &_titleBarFgColor, GetSchemeColor("FrameTitleBar.TextColor", pScheme) );
+	SetOverridableColor( &_titleBarBgColor, GetSchemeColor("FrameTitleBar.BgColor", pScheme) );
+	SetOverridableColor( &_titleBarDisabledFgColor, GetSchemeColor("FrameTitleBar.DisabledTextColor", pScheme) );
+	SetOverridableColor( &_titleBarDisabledBgColor, GetSchemeColor("FrameTitleBar.DisabledBgColor", pScheme) );
 
-	const char *resourceString = pScheme->GetResourceString("Frame.ClientInsetX");
-	if ( resourceString )
+	HFont titlefont;
+	if ( m_hCustomTitleFont )
 	{
-		m_iClientInsetX = atoi(resourceString);
+		titlefont = m_hCustomTitleFont;
 	}
-	resourceString = pScheme->GetResourceString("Frame.ClientInsetY");
-	if ( resourceString )
+	else
 	{
-		m_iClientInsetY = atoi(resourceString);
+		titlefont = INVALID_FONT;
 	}
-	resourceString = pScheme->GetResourceString("Frame.TitleTextInsetX");
-	if ( resourceString )
-	{
-		m_iTitleTextInsetX = atoi(resourceString);
-	}
+
+	_title->SetFont( titlefont );
+	_title->ResizeImageToContent();
+
+#if !defined( _X360 )
+	HFont marfont = INVALID_FONT;
+	_minimizeButton->SetFont(marfont);
+	_maximizeButton->SetFont(marfont);
+	_minimizeToSysTrayButton->SetFont(marfont);
+	_closeButton->SetFont(marfont);
+#endif
+
+	m_flTransitionEffectTime = 0.0f;
+	m_flFocusTransitionEffectTime = 0.0f;
+
+	SetOverridableColor( &m_InFocusBgColor, GetBgColor() );
+	SetOverridableColor( &m_OutOfFocusBgColor, m_InFocusBgColor );
+	m_iClientInsetX = 0;
+	m_iClientInsetY = 0;
+	m_iTitleTextInsetX = 0;
 
 	SetBgColor(m_InFocusBgColor);
-	SetBorder(pScheme->GetBorder("FrameBorder"));
+	SetBorder(NULL);
 
 	OnFrameFocusChanged( m_bHasFocus );
 }

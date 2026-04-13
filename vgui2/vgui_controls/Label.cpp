@@ -1018,6 +1018,7 @@ void Label::ApplySchemeSettings(IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 
+	/*
 	if (_fontOverrideName)
 	{
 		// use the custom specified font since we have one set
@@ -1026,7 +1027,33 @@ void Label::ApplySchemeSettings(IScheme *pScheme)
 	if ( GetFont() == INVALID_FONT )
 	{
 		SetFont( pScheme->GetFont( "Default", IsProportional() ) );
-	}	
+	}
+
+	SetDisabledFgColor1(GetSchemeColor("Label.DisabledFgColor1", pScheme));
+	SetDisabledFgColor2(GetSchemeColor("Label.DisabledFgColor2", pScheme));
+	SetBgColor(GetSchemeColor("Label.BgColor", pScheme));
+
+	switch (_textColorState)
+	{
+	case CS_DULL:
+		SetFgColor(GetSchemeColor("Label.TextDullColor", pScheme));
+		break;
+	case CS_BRIGHT:
+		SetFgColor(GetSchemeColor("Label.TextBrightColor", pScheme));
+		break;
+	case CS_NORMAL:
+	default:
+		SetFgColor(GetSchemeColor("Label.TextColor", pScheme));
+		break;
+	}
+
+	_associateColor = GetSchemeColor("Label.SelectedTextColor", pScheme);
+	*/
+
+	// Avoid scheme vtable font lookups during WASM bring-up.
+	// Keep whatever font state the panel already has rather than
+	// calling into IScheme::GetFont here.
+	(void)pScheme;
 
 	if ( m_bWrap || m_bCenterWrap )
 	{
@@ -1159,8 +1186,18 @@ void Label::GetSettings( KeyValues *outResourceData )
 //-----------------------------------------------------------------------------
 void Label::ApplySettings( KeyValues *inResourceData )
 {
+	printf("[LABEL] ApplySettings ENTRY this=%p name='%s' kv=%p kvName='%s' control='%s'\n",
+		this,
+		GetName() ? GetName() : "<null>",
+		(void *)inResourceData,
+		(inResourceData && inResourceData->GetName()) ? inResourceData->GetName() : "<null>",
+		inResourceData ? inResourceData->GetString("ControlName", "<none>") : "<none>");
 	BaseClass::ApplySettings( inResourceData );
+	printf("[LABEL] after BaseClass::ApplySettings this=%p name='%s'\n",
+		this,
+		GetName() ? GetName() : "<null>");
 
+	/*
 	// label settings
 	const char *labelText =	inResourceData->GetString( "labelText", NULL );
 	if ( labelText )
@@ -1238,19 +1275,6 @@ void Label::ApplySettings( KeyValues *inResourceData )
 		Q_strncpy( _associateName, associateName, len );
 	}
 
-	if (inResourceData->GetInt("dulltext", 0) == 1)
-	{
-		SetTextColorState(CS_DULL);
-	}
-	else if (inResourceData->GetInt("brighttext", 0) == 1)
-	{
-		SetTextColorState(CS_BRIGHT);
-	}
-	else
-	{
-		SetTextColorState(CS_NORMAL);
-	}
-
 	// font settings
 	const char *overrideFont = inResourceData->GetString("font", "");
 	IScheme *pScheme = scheme()->GetIScheme( GetScheme() );
@@ -1291,8 +1315,62 @@ void Label::ApplySettings( KeyValues *inResourceData )
 
 	bool bAllCaps = inResourceData->GetInt("allcaps", 0) > 0;
 	SetAllCaps( bAllCaps );
+	*/
+
+	// Restore the safe subset first: text, alignment, and basic text state.
+	// Keep scheme/font lookups out of this path until the render tree is visible.
+	const char *labelText = inResourceData->GetString( "labelText", NULL );
+	if ( labelText )
+	{
+		SetText(labelText);
+	}
+
+	const char *alignmentString = inResourceData->GetString( "textAlignment", "" );
+	int align = -1;
+
+	if ( !stricmp(alignmentString, "north-west") )
+		align = a_northwest;
+	else if ( !stricmp(alignmentString, "north") )
+		align = a_north;
+	else if ( !stricmp(alignmentString, "north-east") )
+		align = a_northeast;
+	else if ( !stricmp(alignmentString, "west") )
+		align = a_west;
+	else if ( !stricmp(alignmentString, "center") )
+		align = a_center;
+	else if ( !stricmp(alignmentString, "east") )
+		align = a_east;
+	else if ( !stricmp(alignmentString, "south-west") )
+		align = a_southwest;
+	else if ( !stricmp(alignmentString, "south") )
+		align = a_south;
+	else if ( !stricmp(alignmentString, "south-east") )
+		align = a_southeast;
+
+	if ( align != -1 )
+	{
+		SetContentAlignment( (Alignment)align );
+	}
+
+	if (inResourceData->GetInt("dulltext", 0) == 1)
+	{
+		SetTextColorState(CS_DULL);
+	}
+	else if (inResourceData->GetInt("brighttext", 0) == 1)
+	{
+		SetTextColorState(CS_BRIGHT);
+	}
+	else
+	{
+		SetTextColorState(CS_NORMAL);
+	}
 
 	InvalidateLayout(true);
+	printf("[LABEL] ApplySettings EXIT SAFE this=%p name='%s' align=%d text='%s'\n",
+		this,
+		GetName() ? GetName() : "<null>",
+		align,
+		labelText ? labelText : "<null>");
 }
 
 //-----------------------------------------------------------------------------
@@ -1439,6 +1517,3 @@ void Label::HandleAutoSizing( void )
 		SetSize(wide, GetTall());
 	}
 }
-
-
-

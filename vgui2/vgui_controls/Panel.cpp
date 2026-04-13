@@ -4146,7 +4146,7 @@ void Panel::UpdateSiblingPin( void )
 //-----------------------------------------------------------------------------
 void Panel::ApplySchemeSettings(IScheme *pScheme)
 {
-	// get colors
+	/*
 	SetFgColor(GetSchemeColor("Panel.FgColor", pScheme));
 	SetBgColor(GetSchemeColor("Panel.BgColor", pScheme));
 
@@ -4155,6 +4155,18 @@ void Panel::ApplySchemeSettings(IScheme *pScheme)
 	m_clrDropFrame = pScheme->GetColor("DragDrop.DropFrame", Color(150, 255, 150, 255));
 
 	m_infoFont = pScheme->GetFont( "DefaultVerySmall" );
+#endif
+	*/
+
+	// get colors
+	(void)pScheme;
+	SetFgColor(Color(255, 255, 255, 255));
+	SetBgColor(Color(0, 0, 0, 0));
+
+#if defined( VGUI_USEDRAGDROP )
+	m_clrDragFrame = Color(255, 255, 255, 192);
+	m_clrDropFrame = Color(150, 255, 150, 255);
+	m_infoFont = INVALID_FONT;
 #endif
 	// mark us as no longer needing scheme settings applied
 	_flags.ClearFlag( NEEDS_SCHEME_UPDATE );
@@ -4178,6 +4190,7 @@ void Panel::PerformApplySchemeSettings()
 
 	if ( _flags.IsFlagSet( NEEDS_SCHEME_UPDATE ) )
 	{
+		/*
 		VPROF( "ApplySchemeSettings" );
 		IScheme *pScheme = scheme()->GetIScheme( GetScheme() );
 		AssertOnce( pScheme );
@@ -4190,6 +4203,14 @@ void Panel::PerformApplySchemeSettings()
 
 			UpdateSiblingPin();
 		}
+		*/
+
+		// WASM bring-up: skip scheme-vtable dispatch entirely for now.
+		// This keeps controls created from .res files alive and layoutable
+		// without tripping indirect-call signature mismatches.
+		ApplyOverridableColors();
+		UpdateSiblingPin();
+		_flags.ClearFlag( NEEDS_SCHEME_UPDATE );
 	}
 }
 
@@ -5078,7 +5099,12 @@ void Panel::SetOverridableColor( Color *pColor, const Color &newColor )
 //-----------------------------------------------------------------------------
 Color Panel::GetSchemeColor(const char *keyName, IScheme *pScheme)
 {
+	/*
 	return pScheme->GetColor(keyName, Color(255, 255, 255, 255));
+	*/
+	(void)keyName;
+	(void)pScheme;
+	return Color(255, 255, 255, 255);
 }
 
 //-----------------------------------------------------------------------------
@@ -5086,7 +5112,12 @@ Color Panel::GetSchemeColor(const char *keyName, IScheme *pScheme)
 //-----------------------------------------------------------------------------
 Color Panel::GetSchemeColor(const char *keyName, Color defaultColor, IScheme *pScheme)
 {
+	/*
 	return pScheme->GetColor(keyName, defaultColor);
+	*/
+	(void)keyName;
+	(void)pScheme;
+	return defaultColor;
 }
 
 //-----------------------------------------------------------------------------
