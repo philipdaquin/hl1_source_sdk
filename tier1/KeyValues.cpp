@@ -413,9 +413,42 @@ const char *KeyValues::ReadToken(CUtlBuffer &buf, bool &wasQuoted, bool &wasCond
     if (*c == '\"')
     {
         wasQuoted = true;
-        printf("[RT] before GetDelimitedString\n");
-        buf.GetDelimitedString(GetNoEscCharConversion(), s_pTokenBuf, KEYVALUES_TOKEN_SIZE);
-        printf("[RT] after GetDelimitedString result='%s'\n", s_pTokenBuf);
+        printf("[RT] before manual quoted parse\n");
+
+        buf.SeekGet(CUtlBuffer::SEEK_CURRENT, 1); // consume opening quote
+
+        int nCount = 0;
+        int prevPos = -1;
+        while (buf.IsValid())
+        {
+            int curPos = buf.TellGet();
+            if (curPos == prevPos)
+            {
+                printf("[RT] manual quoted parse forced advance pos=%d\n", curPos);
+                buf.SeekGet(CUtlBuffer::SEEK_CURRENT, 1);
+                continue;
+            }
+            prevPos = curPos;
+
+            const char *pPeek = (const char *)buf.PeekGet(sizeof(char), 0);
+            if (!pPeek)
+                break;
+
+            if (*pPeek == '\"')
+            {
+                buf.SeekGet(CUtlBuffer::SEEK_CURRENT, 1); // consume closing quote
+                break;
+            }
+
+            char ch = buf.GetChar();
+            if (nCount < (KEYVALUES_TOKEN_SIZE - 1))
+            {
+                s_pTokenBuf[nCount++] = ch;
+            }
+        }
+
+        s_pTokenBuf[nCount] = 0;
+        printf("[RT] after manual quoted parse result='%s' len=%d\n", s_pTokenBuf, nCount);
         return s_pTokenBuf;
     }
 

@@ -742,22 +742,37 @@ void EditablePanel::OnClose()
 //-----------------------------------------------------------------------------
 bool EditablePanel::RequestInfo(KeyValues *data)
 {
+	printf("[EDITPANEL] RequestInfo ENTRY this=%p name='%s' control='%s'\n",
+		this,
+		data ? data->GetName() : "<null>",
+		data ? data->GetString("ControlName", "<none>") : "<none>");
+
 	if (!stricmp(data->GetName(), "BuildDialog"))
 	{
+		printf("[EDITPANEL] RequestInfo BuildDialog this=%p\n", this);
+
 		// a build dialog is being requested, give it one
 		// a bit hacky, but this is a case where vgui.dll needs to reach out
-		data->SetPtr("PanelPtr", new BuildModeDialog( (BuildGroup *)data->GetPtr("BuildGroupPtr")));
+		data->SetPtr("PanelPtr", new BuildModeDialog((BuildGroup *)data->GetPtr("BuildGroupPtr")));
 		return true;
 	}
 	else if (!stricmp(data->GetName(), "ControlFactory"))
 	{
+		printf("[EDITPANEL] RequestInfo ControlFactory this=%p control='%s'\n",
+			this, data->GetString("ControlName", "<none>"));
 		Panel *newPanel = CreateControlByName(data->GetString("ControlName"));
 		if (newPanel)
 		{
+			printf("[EDITPANEL] RequestInfo ControlFactory created this=%p control='%s' panel=%p\n",
+				this, data->GetString("ControlName", "<none>"), (void *)newPanel);
 			data->SetPtr("PanelPtr", newPanel);
 			return true;
 		}
+
+		printf("[EDITPANEL] RequestInfo ControlFactory failed this=%p control='%s'\n",
+			this, data->GetString("ControlName", "<none>"));
 	}
+
 	return BaseClass::RequestInfo(data);
 }
 
@@ -1117,11 +1132,23 @@ KeyValues *EditablePanel::GetDialogVariables()
 //-----------------------------------------------------------------------------
 Panel *EditablePanel::CreateControlByName(const char *controlName)
 {
+#ifdef __EMSCRIPTEN__
+	printf("[EDITPANEL] CreateControlByName ENTRY this=%p control='%s'\n",
+		this, controlName ? controlName : "<null>");
+#endif
 	Panel *fromFactory = CBuildFactoryHelper::InstancePanel( controlName );
 	if ( fromFactory )
 	{
+#ifdef __EMSCRIPTEN__
+		printf("[EDITPANEL] CreateControlByName SUCCESS this=%p control='%s' panel=%p\n",
+			this, controlName ? controlName : "<null>", (void *)fromFactory);
+#endif
 		return fromFactory;
 	}
 
+#ifdef __EMSCRIPTEN__
+	printf("[EDITPANEL] CreateControlByName NULL this=%p control='%s'\n",
+		this, controlName ? controlName : "<null>");
+#endif
 	return NULL;
 }

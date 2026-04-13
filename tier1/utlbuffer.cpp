@@ -734,80 +734,56 @@ char CUtlBuffer::GetDelimitedChar( CUtlCharConversion *pConv )
 
 void CUtlBuffer::GetDelimitedString( CUtlCharConversion *pConv, char *pString, int nMaxChars )
 {
-    printf("[GDS] ENTRY IsText=%d pConv=%p\n", IsText() ? 1 : 0, pConv);
-    
-    if ( !IsText() || !pConv )
-    {
-        printf("[GDS] not text or no conv, using GetStringInternal\n");
-        GetStringInternal( pString, nMaxChars );
-        return;
-    }
+	if ( !IsText() || !pConv )
+	{
+		GetStringInternal( pString, nMaxChars );
+		return;
+	}
 
-    if (!IsValid())
-    {
-        printf("[GDS] not valid\n");
-        *pString = 0;
-        return;
-    }
+	if ( !IsValid() )
+	{
+		*pString = 0;
+		return;
+	}
 
-    if ( nMaxChars == 0 )
-        nMaxChars = INT_MAX;
+	if ( nMaxChars == 0 )
+		nMaxChars = INT_MAX;
 
-    printf("[GDS] before EatWhiteSpace pos=%d\n", TellGet());
-    EatWhiteSpace();
-    printf("[GDS] after EatWhiteSpace pos=%d\n", TellGet());
-    
-    printf("[GDS] delimiter='%s' len=%d\n", pConv->GetDelimiter(), pConv->GetDelimiterLength());
-    bool match = PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() );
-    printf("[GDS] PeekStringMatch=%d\n", match ? 1 : 0);
-    
-    if ( !match )
-    {
-        printf("[GDS] no opening delimiter found, returning\n");
-        return;
-    }
+	EatWhiteSpace();
+	if ( !PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() ) )
+		return;
 
-    SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
-    printf("[GDS] after SeekGet past opening delimiter pos=%d\n", TellGet());
+	SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
 
-    int nRead = 0;
-    int loopCount = 0;
-    while ( IsValid() )
-    {
-        loopCount++;
-        printf("[GDS] loop=%d pos=%d nRead=%d\n", loopCount, TellGet(), nRead);
-        
-        if (loopCount > 1000)
-        {
-            printf("[GDS] INFINITE LOOP DETECTED breaking\n");
-            break;
-        }
+	int nRead = 0;
+	int prevPos = -1;
+	while ( IsValid() )
+	{
+		int curPos = TellGet();
+		if ( curPos == prevPos )
+		{
+			SeekGet( SEEK_CURRENT, 1 );
+			continue;
+		}
+		prevPos = curPos;
 
-        bool endMatch = PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() );
-        printf("[GDS] endMatch=%d\n", endMatch ? 1 : 0);
-        
-        if ( endMatch )
-        {
-            SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
-            break;
-        }
+		if ( PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() ) )
+		{
+			SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
+			break;
+		}
 
-        printf("[GDS] before GetDelimitedCharInternal pos=%d\n", TellGet());
-        char c = GetDelimitedCharInternal( pConv );
-        printf("[GDS] after GetDelimitedCharInternal c='%c' val=%d pos=%d\n", 
-               (c >= 32) ? c : '?', (int)c, TellGet());
+		char c = GetDelimitedCharInternal( pConv );
+		if ( nRead < nMaxChars )
+		{
+			pString[nRead] = c;
+			++nRead;
+		}
+	}
 
-        if ( nRead < nMaxChars )
-        {
-            pString[nRead] = c;
-            ++nRead;
-        }
-    }
-
-    if ( nRead >= nMaxChars )
-        nRead = nMaxChars - 1;
-    pString[nRead] = '\0';
-    printf("[GDS] EXIT result='%s'\n", pString);
+	if ( nRead >= nMaxChars )
+		nRead = nMaxChars - 1;
+	pString[nRead] = '\0';
 }
 
 //-----------------------------------------------------------------------------

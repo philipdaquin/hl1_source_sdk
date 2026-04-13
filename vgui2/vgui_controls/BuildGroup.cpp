@@ -904,8 +904,15 @@ void BuildGroup::LoadControlSettings(const char *controlResourceName, const char
 		}
 
 #ifdef __EMSCRIPTEN__
-		printf( "[BUILDGROUP] LoadControlSettings after LoadFromFile resource='%s' success=%d rDat=%p\n",
-			controlResourceName ? controlResourceName : "<null>", bSuccess ? 1 : 0, (void *)rDat );
+		printf("[BG] after LoadFromFile success=%d name='%s' firstSubKey='%s' firstSubSubKey='%s' resource='%s' rDat=%p\n",
+			bSuccess ? 1 : 0,
+			rDat && rDat->GetName() ? rDat->GetName() : "<null>",
+			(rDat && rDat->GetFirstSubKey() && rDat->GetFirstSubKey()->GetName()) ? rDat->GetFirstSubKey()->GetName() : "<null>",
+			(rDat && rDat->GetFirstSubKey() && rDat->GetFirstSubKey()->GetFirstSubKey() && rDat->GetFirstSubKey()->GetFirstSubKey()->GetName())
+				? rDat->GetFirstSubKey()->GetFirstSubKey()->GetName()
+				: "<null>",
+			controlResourceName ? controlResourceName : "<null>",
+			(void *)rDat);
 #endif
 
 		// GoldSrc: Maybe posible to port?
@@ -1225,6 +1232,27 @@ void BuildGroup::DeleteAllControlsCreatedByControlSettingsFile()
 //-----------------------------------------------------------------------------
 void BuildGroup::ApplySettings( KeyValues *resourceData )
 {
+#ifdef __EMSCRIPTEN__
+	printf("[BUILDGROUP] ApplySettings ENTRY resourceData=%p name='%s' firstSubKey='%s' panelDar.Count=%d parent=%p parentName='%s' context=%p contextName='%s'\n",
+		(void *)resourceData,
+		(resourceData && resourceData->GetName()) ? resourceData->GetName() : "<null>",
+		(resourceData && resourceData->GetFirstSubKey() && resourceData->GetFirstSubKey()->GetName()) ? resourceData->GetFirstSubKey()->GetName() : "<null>",
+		_panelDar.Count(),
+		(void *)m_pParentPanel,
+		(m_pParentPanel && m_pParentPanel->GetName()) ? m_pParentPanel->GetName() : "<null>",
+		(void *)m_pBuildContext,
+		(m_pBuildContext && m_pBuildContext->GetName()) ? m_pBuildContext->GetName() : "<null>");
+
+	for (int i = 0; i < _panelDar.Count(); ++i)
+	{
+		Panel *p = _panelDar[i].Get();
+		printf("[BUILDGROUP] panelDar[%d] ptr=%p name='%s'\n",
+			i,
+			(void *)p,
+			(p && p->GetName()) ? p->GetName() : "<null>");
+	}
+#endif
+
 	// loop through all the keys, applying them wherever
 	for (KeyValues *controlKeys = resourceData->GetFirstSubKey(); controlKeys != NULL; controlKeys = controlKeys->GetNextKey())
 	{
@@ -1330,26 +1358,29 @@ Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 	Panel *newPanel = NULL;
 	if (controlKeys)
 	{
-#ifdef __EMSCRIPTEN__
-		printf( "[BUILDGROUP] NewControl request field='%s' class='%s' x=%d y=%d parent=%p context=%p\n",
+		printf("[BUILDGROUP] NewControl request field='%s' class='%s' x=%d y=%d parent=%p parentName='%s' context=%p contextName='%s'\n",
 			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
-			controlKeys->GetString("ControlName", "<none>"), x, y, m_pParentPanel, m_pBuildContext );
-#endif
+			controlKeys->GetString("ControlName", "<none>"),
+			x,
+			y,
+			(void *)m_pParentPanel,
+			m_pParentPanel && m_pParentPanel->GetName() ? m_pParentPanel->GetName() : "<null>",
+			(void *)m_pBuildContext,
+			m_pBuildContext && m_pBuildContext->GetName() ? m_pBuildContext->GetName() : "<null>");
 //		Warning( "Creating new control \"%s\" of type \"%s\"\n", controlKeys->GetString( "fieldName" ), controlKeys->GetString( "ControlName" ) );
 		KeyValues *keyVal = new KeyValues("ControlFactory", "ControlName", controlKeys->GetString("ControlName"));
-	#ifdef __EMSCRIPTEN__
-		printf( "[BUILDGROUP] NewControl before RequestInfo field='%s' class='%s'\n",
-			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
-			controlKeys->GetString("ControlName", "<none>") );
-	#endif
+		printf("[BUILDGROUP] sending RequestInfo name='%s' ControlName='%s' context=%p contextName='%s'\n",
+			keyVal->GetName() ? keyVal->GetName() : "<null>",
+			keyVal->GetString("ControlName", "<none>"),
+			(void *)m_pBuildContext,
+			m_pBuildContext && m_pBuildContext->GetName() ? m_pBuildContext->GetName() : "<null>");
 		m_pBuildContext->RequestInfo(keyVal);
 		// returns NULL on failure
 		newPanel = (Panel *)keyVal->GetPtr("PanelPtr");
-	#ifdef __EMSCRIPTEN__
-		printf( "[BUILDGROUP] NewControl after RequestInfo field='%s' class='%s' panel=%p\n",
+		printf("[BUILDGROUP] NewControl after RequestInfo field='%s' class='%s' panel=%p\n",
 			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
-			controlKeys->GetString("ControlName", "<none>"), (void *)newPanel );
-	#endif
+			controlKeys->GetString("ControlName", "<none>"),
+			(void *)newPanel);
 		keyVal->deleteThis();
 	}
 	else
