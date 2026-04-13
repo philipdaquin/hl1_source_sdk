@@ -9,6 +9,7 @@
 #include <FileSystem.h>
 #include <KeyValues.h>
 #include <vgui/IScheme.h>
+#include <vgui/ISurface.h>
 #include <vgui_controls/Controls.h>
 #include <locale.h>
 
@@ -236,6 +237,11 @@ ISchemeManagerEx *scheme()
     return &s_SchemeManagerWrapper;
 }
 
+HScheme VGui_GetDefaultScheme()
+{
+	return scheme()->GetDefaultScheme();
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Initializes the controls
 //-----------------------------------------------------------------------------
@@ -300,6 +306,4 @@ const char *GetControlsModuleName()
 }
 
 } // namespace vgui2
-
-
 

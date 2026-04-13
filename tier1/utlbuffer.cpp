@@ -709,8 +709,14 @@ char CUtlBuffer::GetDelimitedCharInternal( CUtlCharConversion *pConv )
 	if ( c == pConv->GetEscapeChar() )
 	{
 		int nLength = pConv->MaxConversionLength();
-		if ( !CheckArbitraryPeekGet( 0, nLength ) )
-			return '\0';
+		// Emscripten/WASM safety:
+		// some conversion tables intentionally have no replacement sequences,
+		// which leaves MaxConversionLength() at 0. Returning '\0' here can leave
+		// the higher-level delimited-string loop spinning without useful progress.
+		// If there is no conversion payload to inspect, keep the consumed escape
+		// character as-is instead of synthesizing a terminator.
+		if ( nLength <= 0 || !CheckArbitraryPeekGet( 0, nLength ) )
+			return c;
 
 		c = pConv->FindConversion( (const char *)PeekGet(), &nLength );
 		SeekGet( SEEK_CURRENT, nLength );
@@ -728,55 +734,81 @@ char CUtlBuffer::GetDelimitedChar( CUtlCharConversion *pConv )
 
 void CUtlBuffer::GetDelimitedString( CUtlCharConversion *pConv, char *pString, int nMaxChars )
 {
-	if ( !IsText() || !pConv )
-	{
-		GetStringInternal( pString, nMaxChars );
-		return;
-	}
+    printf("[GDS] ENTRY IsText=%d pConv=%p\n", IsText() ? 1 : 0, pConv);
+    
+    if ( !IsText() || !pConv )
+    {
+        printf("[GDS] not text or no conv, using GetStringInternal\n");
+        GetStringInternal( pString, nMaxChars );
+        return;
+    }
 
-	if (!IsValid())
-	{
-		*pString = 0;
-		return;
-	}
+    if (!IsValid())
+    {
+        printf("[GDS] not valid\n");
+        *pString = 0;
+        return;
+    }
 
-	if ( nMaxChars == 0 )
-	{
-		nMaxChars = INT_MAX;
-	}
+    if ( nMaxChars == 0 )
+        nMaxChars = INT_MAX;
 
-	EatWhiteSpace();
-	if ( !PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() ) )
-		return;
+    printf("[GDS] before EatWhiteSpace pos=%d\n", TellGet());
+    EatWhiteSpace();
+    printf("[GDS] after EatWhiteSpace pos=%d\n", TellGet());
+    
+    printf("[GDS] delimiter='%s' len=%d\n", pConv->GetDelimiter(), pConv->GetDelimiterLength());
+    bool match = PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() );
+    printf("[GDS] PeekStringMatch=%d\n", match ? 1 : 0);
+    
+    if ( !match )
+    {
+        printf("[GDS] no opening delimiter found, returning\n");
+        return;
+    }
 
-	// Pull off the starting delimiter
-	SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
+    SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
+    printf("[GDS] after SeekGet past opening delimiter pos=%d\n", TellGet());
 
-	int nRead = 0;
-	while ( IsValid() )
-	{
-		if ( PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() ) )
-		{
-			SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
-			break;
-		}
+    int nRead = 0;
+    int loopCount = 0;
+    while ( IsValid() )
+    {
+        loopCount++;
+        printf("[GDS] loop=%d pos=%d nRead=%d\n", loopCount, TellGet(), nRead);
+        
+        if (loopCount > 1000)
+        {
+            printf("[GDS] INFINITE LOOP DETECTED breaking\n");
+            break;
+        }
 
-		char c = GetDelimitedCharInternal( pConv );
+        bool endMatch = PeekStringMatch( 0, pConv->GetDelimiter(), pConv->GetDelimiterLength() );
+        printf("[GDS] endMatch=%d\n", endMatch ? 1 : 0);
+        
+        if ( endMatch )
+        {
+            SeekGet( SEEK_CURRENT, pConv->GetDelimiterLength() );
+            break;
+        }
 
-		if ( nRead < nMaxChars )
-		{
-			pString[nRead] = c;
-			++nRead;
-		}
-	}
+        printf("[GDS] before GetDelimitedCharInternal pos=%d\n", TellGet());
+        char c = GetDelimitedCharInternal( pConv );
+        printf("[GDS] after GetDelimitedCharInternal c='%c' val=%d pos=%d\n", 
+               (c >= 32) ? c : '?', (int)c, TellGet());
 
-	if ( nRead >= nMaxChars )
-	{
-		nRead = nMaxChars - 1;
-	}
-	pString[nRead] = '\0';
+        if ( nRead < nMaxChars )
+        {
+            pString[nRead] = c;
+            ++nRead;
+        }
+    }
+
+    if ( nRead >= nMaxChars )
+        nRead = nMaxChars - 1;
+    pString[nRead] = '\0';
+    printf("[GDS] EXIT result='%s'\n", pString);
 }
-
 
 //-----------------------------------------------------------------------------
 // Checks if a get is ok
@@ -1791,4 +1823,3 @@ char * CUtlInplaceBuffer::InplaceGetLinePtr( void )
 
 	return pszLine;
 }
-

@@ -480,6 +480,15 @@ inline DEST_POINTER_TYPE assert_cast(SOURCE_POINTER_TYPE* pSource)
 // Templates to assist in validating pointers:
 
 // Have to use these stubs so we don't have to include windows.h here.
+#ifdef __EMSCRIPTEN__
+inline void _AssertValidReadPtr( void* /*ptr*/, int /*count*/ = 1 ) {}
+inline void _AssertValidWritePtr( void* /*ptr*/, int /*count*/ = 1 ) {}
+inline void _AssertValidReadWritePtr( void* /*ptr*/, int /*count*/ = 1 ) {}
+inline void AssertValidStringPtr( const tchar* /*ptr*/, int /*maxchar*/ = 0xFFFFFF ) {}
+template<class T> inline void AssertValidReadPtr( T* /*ptr*/, int /*count*/ = 1 ) {}
+template<class T> inline void AssertValidWritePtr( T* /*ptr*/, int /*count*/ = 1 ) {}
+template<class T> inline void AssertValidReadWritePtr( T* /*ptr*/, int /*count*/ = 1 ) {}
+#else
 DBG_INTERFACE void _AssertValidReadPtr( void* ptr, int count = 1 );
 DBG_INTERFACE void _AssertValidWritePtr( void* ptr, int count = 1 );
 DBG_INTERFACE void _AssertValidReadWritePtr( void* ptr, int count = 1 );
@@ -488,6 +497,7 @@ DBG_INTERFACE  void AssertValidStringPtr( const tchar* ptr, int maxchar = 0xFFFF
 template<class T> inline void AssertValidReadPtr( T* ptr, int count = 1 )		     { _AssertValidReadPtr( (void*)ptr, count ); }
 template<class T> inline void AssertValidWritePtr( T* ptr, int count = 1 )		     { _AssertValidWritePtr( (void*)ptr, count ); }
 template<class T> inline void AssertValidReadWritePtr( T* ptr, int count = 1 )	     { _AssertValidReadWritePtr( (void*)ptr, count ); }
+#endif
 
 #define AssertValidThis() AssertValidReadWritePtr(this,sizeof(*this))
 

@@ -15,6 +15,13 @@
 #include <vgui/IScheme.h>
 #include <vgui/ISystem.h>
 #include "KeyValuesCompat.h"
+#include <stdio.h>
+
+#if defined(__EMSCRIPTEN__)
+#define TIER2_LOG(...) printf(__VA_ARGS__)
+#else
+#define TIER2_LOG(...) Msg(__VA_ARGS__)
+#endif
 
 IFileSystem *g_pFullFileSystem;
 IBaseUI *g_pBaseUI;
@@ -35,18 +42,30 @@ void SteamAPI_InitForGoldSrc();
 
 void ConnectTier2Libraries(CreateInterfaceFn *pFactoryList, int nFactoryCount)
 {
+	TIER2_LOG("[VGUI2-TIER2] ConnectTier2Libraries ENTRY factories=%d connected=%d\n", nFactoryCount, s_bConnected ? 1 : 0);
+
 	if (s_bConnected)
+	{
+		TIER2_LOG("[VGUI2-TIER2] ConnectTier2Libraries SKIP - already connected\n");
 		return;
+	}
 
 	s_bConnected = true;
 
 	if (!KV_InitKeyValuesSystem(pFactoryList, nFactoryCount))
 	{
+		TIER2_LOG("[VGUI2-TIER2] FAIL KV_InitKeyValuesSystem returned false\n");
 		Error("tier2: Failed to initialize KeyValues\n");
 		Assert(false);
 	}
 
+	TIER2_LOG("[VGUI2-TIER2] KeyValues initialized successfully\n");
+
+#if defined(__EMSCRIPTEN__)
+	TIER2_LOG("[VGUI2-TIER2] Emscripten build: skipping SteamAPI_InitForGoldSrc (not required for VGUI2 menus)\n");
+#else
 	SteamAPI_InitForGoldSrc();
+#endif
 
 	for (int i = 0; i < nFactoryCount; ++i)
 	{
@@ -76,7 +95,9 @@ void ConnectTier2Libraries(CreateInterfaceFn *pFactoryList, int nFactoryCount)
 		}
 		if (!g_pVGuiSurface)
 		{
+			TIER2_LOG("[TIER2] requesting ISurface '%s'\n", VGUI_SURFACE_INTERFACE_VERSION_GS);
 			g_pVGuiSurface = (vgui2::ISurface *)pFactoryList[i](VGUI_SURFACE_INTERFACE_VERSION_GS, NULL);
+			TIER2_LOG("[TIER2] ISurface '%s' -> %p\n", VGUI_SURFACE_INTERFACE_VERSION_GS, g_pVGuiSurface);
 		}
 		if (!g_pVGuiInput)
 		{
@@ -103,6 +124,12 @@ void ConnectTier2Libraries(CreateInterfaceFn *pFactoryList, int nFactoryCount)
 			g_pVGuiSystem = (vgui2::ISystem *)pFactoryList[i](VGUI_SYSTEM_INTERFACE_VERSION_GS, NULL);
 		}
 	}
+
+	TIER2_LOG("[VGUI2-TIER2] ConnectTier2Libraries COMPLETE fs=%p baseui=%p enginevgui=%p gameuifuncs=%p gameconsole=%p gameui=%p surface=%p input=%p ivgui=%p panel=%p localize=%p scheme=%p system=%p\n",
+		g_pFullFileSystem, g_pBaseUI, g_pEngineVGui, g_pGameUIFuncs, g_pGameConsole, g_pGameUI,
+		g_pVGuiSurface, g_pVGuiInput, g_pVGui, g_pVGuiPanel, g_pVGuiLocalize, g_pVGuiSchemeManager, g_pVGuiSystem);
+	TIER2_LOG("[TIER2] FINAL STATE g_pVGui=%p g_pVGuiPanel=%p g_pVGuiSurface=%p\n",
+		g_pVGui, g_pVGuiPanel, g_pVGuiSurface);
 }
 
 void DisconnectTier2Libraries()

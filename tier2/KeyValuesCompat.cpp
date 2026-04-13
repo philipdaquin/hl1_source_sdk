@@ -1,7 +1,13 @@
-#include "interface.h"
+#define __INTERFACE_H__
+#include <tier1/interface.h>
 #include "vstdlib/IKeyValuesSystem.h"
 #include "KeyValues.h"
 #include "KeyValuesCompat.h"
+#include <cstdio>
+#include <deque>
+#include <string>
+#include <unordered_map>
+#include <cstdlib>
 
 //This is the VGUI2 version of the IKeyValuesSystem interface. It has additional methods that makes it incompatible. - Solokiller
 class IKeyValues : public IBaseInterface
@@ -33,6 +39,7 @@ public:
 #define IKEYVALUES_INTERFACE_VERSION "KeyValues003"
 
 IKeyValues* g_pKeyValuesInterface = NULL;
+static IKeyValuesSystem* g_pActiveKeyValuesSystem = NULL;
 
 class CKeyValuesWrapper : public IKeyValuesSystem
 {
@@ -75,13 +82,82 @@ public:
 
 CKeyValuesWrapper g_KeyValuesSystem;
 
+#ifdef __EMSCRIPTEN__
+class CLocalKeyValuesSystem : public IKeyValuesSystem
+{
+public:
+	void RegisterSizeofKeyValues( int size ) override
+	{
+		m_keyValueSize = size;
+	}
+
+	void *AllocKeyValuesMemory( int size ) override
+	{
+		if( size <= 0 )
+			size = m_keyValueSize > 0 ? m_keyValueSize : static_cast<int>( sizeof( KeyValues ) );
+
+		return std::malloc( static_cast<size_t>( size ) );
+	}
+
+	void FreeKeyValuesMemory( void *pMem ) override
+	{
+		std::free( pMem );
+	}
+
+	HKeySymbol GetSymbolForString( const char *name ) override
+	{
+		const std::string key = name ? name : "";
+		const auto it = m_symbolLookup.find( key );
+		if( it != m_symbolLookup.end() )
+			return it->second;
+
+		m_symbols.emplace_back( key );
+		const HKeySymbol symbol = static_cast<HKeySymbol>( m_symbols.size() );
+		m_symbolLookup.emplace( m_symbols.back(), symbol );
+		return symbol;
+	}
+
+	const char *GetStringForSymbol( HKeySymbol symbol ) override
+	{
+		if( symbol <= 0 || static_cast<size_t>( symbol ) > m_symbols.size() )
+			return "";
+
+		return m_symbols[symbol - 1].c_str();
+	}
+
+	void AddKeyValuesToMemoryLeakList( void *pMem, HKeySymbol name ) override
+	{
+		(void)pMem;
+		(void)name;
+	}
+
+	void RemoveKeyValuesFromMemoryLeakList( void *pMem ) override
+	{
+		(void)pMem;
+	}
+
+private:
+	int m_keyValueSize = 0;
+	std::deque<std::string> m_symbols;
+	std::unordered_map<std::string, HKeySymbol> m_symbolLookup;
+};
+
+static CLocalKeyValuesSystem g_LocalKeyValuesSystem;
+#endif
+
 IKeyValuesSystem *keyvalues()
 {
-	return &g_KeyValuesSystem;
+	return g_pActiveKeyValuesSystem ? g_pActiveKeyValuesSystem : &g_KeyValuesSystem;
 }
 
 bool KV_InitKeyValuesSystem( CreateInterfaceFn* pFactories, int iNumFactories )
 {
+#ifdef __EMSCRIPTEN__
+	g_pActiveKeyValuesSystem = &g_LocalKeyValuesSystem;
+	g_pActiveKeyValuesSystem->RegisterSizeofKeyValues( sizeof( KeyValues ) );
+	std::printf( "[KV-COMPAT] __EMSCRIPTEN__ using local KeyValues allocator/system size=%zu\n", sizeof( KeyValues ) );
+	return true;
+#else
 	for (int i = 0; i < iNumFactories; ++i)
 	{
 		if (!g_pKeyValuesInterface)
@@ -94,6 +170,8 @@ bool KV_InitKeyValuesSystem( CreateInterfaceFn* pFactories, int iNumFactories )
 		return false;
 
 	g_pKeyValuesInterface->RegisterSizeofKeyValues( sizeof( KeyValues ) );
+	g_pActiveKeyValuesSystem = &g_KeyValuesSystem;
 
 	return true;
+#endif
 }

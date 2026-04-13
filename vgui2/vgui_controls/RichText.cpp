@@ -2591,12 +2591,14 @@ int RichText::ParseTextStringForUrls( const char *text, int startPos, char *pchU
 			// get the url
 			i += Q_strlen( "<a href=" );
 			const char *pchURLEnd = Q_strstr( text + i, ">" );
-			Q_strncpy( pchURL, text + i, min( (int)(pchURLEnd - text - i + 1), cchURL ) ); 
+			int urlLen = static_cast<int>( pchURLEnd - text - i + 1 );
+			Q_strncpy( pchURL, text + i, min( urlLen, cchURL ) ); 
 			i += ( pchURLEnd - text - i + 1 );
             
 			// get the url text
 			pchURLEnd = Q_strstr( text, "</a>" );
-			Q_strncpy( pchURLText, text + i, min( (int)(pchURLEnd - text - i + 1), cchURLText ) ); 
+			int urlTextLen = static_cast<int>( pchURLEnd - text - i + 1 );
+			Q_strncpy( pchURLText, text + i, min( urlTextLen, cchURLText ) ); 
 			i += ( pchURLEnd - text - i );
 			i += Q_strlen( "</a>" );
 
@@ -2788,4 +2790,3 @@ void RichText::Validate( CValidator &validator, char *pchName )
 	validator.Pop();
 }
 #endif // DBGFLAG_VALIDATE
-

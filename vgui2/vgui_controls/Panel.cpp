@@ -644,8 +644,12 @@ Panel::Panel()
 //-----------------------------------------------------------------------------
 Panel::Panel(Panel *parent)
 {
+	printf("[PANELDBG] Panel::Panel(parent=%p) ENTRY this=%p\n", parent, this);
 	Init(0, 0, 64, 24);
+	printf("[PANELDBG] Panel::Panel(parent=%p) AFTER Init this=%p vpanel=%u\n",
+		parent, this, (unsigned int)_vpanel);
 	SetParent(parent);
+	printf("[PANELDBG] Panel::Panel(parent=%p) EXIT this=%p\n", parent, this);
 }
 
 //-----------------------------------------------------------------------------
@@ -653,10 +657,21 @@ Panel::Panel(Panel *parent)
 //-----------------------------------------------------------------------------
 Panel::Panel(Panel *parent, const char *panelName)
 {
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) ENTRY this=%p\n",
+		parent, panelName ? panelName : "<null>", this);
+
 	Init(0, 0, 64, 24);
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) AFTER Init this=%p vpanel=%u\n",
+		parent, panelName ? panelName : "<null>", this, (unsigned int)_vpanel);
 	SetName(panelName);
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) AFTER SetName this=%p\n",
+		parent, panelName ? panelName : "<null>", this);
 	SetParent(parent);
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) AFTER SetParent this=%p\n",
+		parent, panelName ? panelName : "<null>", this);
 	SetBuildModeEditable(true);
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) EXIT this=%p\n",
+		parent, panelName ? panelName : "<null>", this);
 }
 
 //-----------------------------------------------------------------------------
@@ -664,11 +679,22 @@ Panel::Panel(Panel *parent, const char *panelName)
 //-----------------------------------------------------------------------------
 Panel::Panel( Panel *parent, const char *panelName, HScheme scheme )
 {
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) ENTRY this=%p\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
+
 	Init(0, 0, 64, 24);
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) AFTER Init this=%p vpanel=%u\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this, (unsigned int)_vpanel);
 	SetName(panelName);
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) AFTER SetName this=%p\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
 	SetParent(parent);
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) AFTER SetParent this=%p\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
 	SetBuildModeEditable(true);
 	SetScheme( scheme );
+	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) EXIT this=%p\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
 }
 
 //-----------------------------------------------------------------------------
@@ -676,6 +702,8 @@ Panel::Panel( Panel *parent, const char *panelName, HScheme scheme )
 //-----------------------------------------------------------------------------
 void Panel::Init( int x, int y, int wide, int tall )
 {
+	printf("[PANELDBG] Panel::Init ENTRY this=%p ivgui=%p ipanel=%p\n",
+		this, ivgui(), ipanel());
 	_panelName = NULL;
 	_tooltipText = NULL;
 	_pinToSibling = NULL;
@@ -685,7 +713,11 @@ void Panel::Init( int x, int y, int wide, int tall )
 
 	// get ourselves an internal panel
 	_vpanel = ivgui()->AllocPanel();
+	printf("[PANELDBG] Panel::Init after AllocPanel this=%p vpanel=%u\n",
+		this, (unsigned int)_vpanel);
 	ipanel()->Init(_vpanel, this);
+	printf("[PANELDBG] Panel::Init after ipanel()->Init this=%p vpanel=%u\n",
+		this, (unsigned int)_vpanel);
 
 	SetPos(x, y);
 	SetSize(wide, tall);
@@ -727,6 +759,8 @@ void Panel::Init( int x, int y, int wide, int tall )
 	m_nBgTextureId2 = -1;
 	m_nBgTextureId3 = -1;
 	m_nBgTextureId4 = -1;
+	printf("[PANELDBG] Panel::Init EXIT this=%p vpanel=%u\n",
+		this, (unsigned int)_vpanel);
 #if defined( VGUI_USEDRAGDROP )
 	m_pDragDrop = new DragDrop_t;
 
@@ -768,6 +802,9 @@ void Panel::Init( int x, int y, int wide, int tall )
 //-----------------------------------------------------------------------------
 Panel::~Panel()
 {
+	printf("[PANELDBG] Panel::~Panel ENTRY this=%p vpanel=%u parent=%u childCount=%d\n",
+		this, (unsigned int)_vpanel, (unsigned int)GetVParent(),
+		_vpanel ? ipanel()->GetChildCount(GetVPanel()) : -1);
 	// @note Tom Bui: only cleanup if we've created it
 	if ( !m_bToolTipOverridden )
 	{
@@ -822,6 +859,7 @@ Panel::~Panel()
 	delete [] _pinToSibling;
 
 	_vpanel = NULL;
+	printf("[PANELDBG] Panel::~Panel EXIT this=%p\n", this);
 #if defined( VGUI_USEDRAGDROP )
 	delete m_pDragDrop;
 #endif // VGUI_USEDRAGDROP
@@ -1449,6 +1487,8 @@ bool Panel::IsBottomAligned()
 //-----------------------------------------------------------------------------
 void Panel::SetParent(Panel *newParent)
 {
+	printf("[PANELDBG] Panel::SetParent(Panel*) this=%p newParent=%p currentVParent=%u\n",
+		this, newParent, (unsigned int)GetVParent());
 	// Assert that the parent is from the same module as the child
 	// FIXME: !!! work out how to handle this properly!
 	//	Assert(!newParent || !strcmp(newParent->GetModuleName(), GetControlsModuleName()));
@@ -1461,6 +1501,8 @@ void Panel::SetParent(Panel *newParent)
 	{
 		SetParent((VPANEL)NULL);
 	}
+	printf("[PANELDBG] Panel::SetParent(Panel*) EXIT this=%p newVParent=%u\n",
+		this, (unsigned int)GetVParent());
 }
 
 //-----------------------------------------------------------------------------
@@ -1468,6 +1510,8 @@ void Panel::SetParent(Panel *newParent)
 //-----------------------------------------------------------------------------
 void Panel::SetParent(VPANEL newParent)
 {
+	printf("[PANELDBG] Panel::SetParent(VPANEL) ENTRY this=%p vpanel=%u newParent=%u oldParent=%u\n",
+		this, (unsigned int)GetVPanel(), (unsigned int)newParent, (unsigned int)GetVParent());
 	if (newParent)
 	{
 		ipanel()->SetParent(GetVPanel(), newParent);
@@ -1494,6 +1538,8 @@ void Panel::SetParent(VPANEL newParent)
 	}
 
 	UpdateSiblingPin();
+	printf("[PANELDBG] Panel::SetParent(VPANEL) EXIT this=%p vpanel=%u finalParent=%u\n",
+		this, (unsigned int)GetVPanel(), (unsigned int)GetVParent());
 }
 
 //-----------------------------------------------------------------------------
@@ -1501,6 +1547,8 @@ void Panel::SetParent(VPANEL newParent)
 //-----------------------------------------------------------------------------
 void Panel::OnChildAdded(VPANEL child)
 {
+	printf("[PANELDBG] Panel::OnChildAdded this=%p child=%u inPerformLayout=%d\n",
+		this, (unsigned int)child, _flags.IsFlagSet( IN_PERFORM_LAYOUT ) ? 1 : 0);
 	Assert( !_flags.IsFlagSet( IN_PERFORM_LAYOUT ) );
 }
 

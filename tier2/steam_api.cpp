@@ -9,6 +9,7 @@
 
 #include <fstream>
 #include <string>
+#include <stdio.h>
 #include <tier0/dbg.h>
 #include <tier1/interface.h>
 #include <tier2/tier2.h>
@@ -17,6 +18,12 @@
 #ifdef OSX
 #include <vector>
 #include <libproc.h>
+#endif
+
+#if defined(__EMSCRIPTEN__)
+#define TIER2_LOG(...) printf(__VA_ARGS__)
+#else
+#define TIER2_LOG(...) Msg(__VA_ARGS__)
 #endif
 
 namespace
@@ -166,9 +173,18 @@ void LoadSteamClient017()
 void SteamAPI_InitForGoldSrc()
 {
 	if (g_bIsInited)
+	{
+		TIER2_LOG("[VGUI2-TIER2] SteamAPI_InitForGoldSrc SKIP - already initialized\n");
 		return;
+	}
 
 	g_bIsInited = true;
+	TIER2_LOG("[VGUI2-TIER2] SteamAPI_InitForGoldSrc ENTRY\n");
+
+#if defined(__EMSCRIPTEN__)
+	TIER2_LOG("[VGUI2-TIER2] SteamAPI_InitForGoldSrc Emscripten: skipping native Steam initialization\n");
+	return;
+#endif
 
 #ifndef NO_STEAM
 #ifdef SOURCE_SDK_MIN_STEAM_API
@@ -176,9 +192,13 @@ void SteamAPI_InitForGoldSrc()
 #endif
 
 	if (!SteamAPI_IsAvailable())
+	{
+		TIER2_LOG("[VGUI2-TIER2] SteamAPI_InitForGoldSrc SteamAPI_IsAvailable returned false\n");
 		return;
+	}
 
 	LoadSteamClient017();
+	TIER2_LOG("[VGUI2-TIER2] SteamAPI_InitForGoldSrc COMPLETE steamclient=%p\n", g_pSteamClient017);
 #endif
 }
 

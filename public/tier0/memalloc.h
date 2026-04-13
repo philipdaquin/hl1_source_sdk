@@ -330,7 +330,7 @@ inline void MemAlloc_GlobalMemoryStatus( size_t *pusedMemory, size_t *pfreeMemor
 
 #endif //!STEAM && NO_MALLOC_OVERRIDE
 
-#ifdef POSIX
+#if defined(POSIX) && defined(NO_MALLOC_OVERRIDE)
 #ifdef OSX
 #include <stdlib.h>
 #else

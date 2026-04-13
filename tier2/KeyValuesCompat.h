@@ -1,7 +1,7 @@
 #ifndef GAME_CLIENT_KEYVALUESCOMPAT_H
 #define GAME_CLIENT_KEYVALUESCOMPAT_H
 
-#include "interface.h"
+#include "tier1/interface.h"
 
 /**
 *	Initializes the KeyValuesSystem accessor.

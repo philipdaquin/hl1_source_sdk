@@ -454,7 +454,10 @@ void inline SinCos( float radians, float *sine, float *cosine )
 #elif defined( PLATFORM_WINDOWS_PC64 )
 	*sine = sin( radians );
 	*cosine = cos( radians );
-#elif defined( POSIX ) && !defined( __EMSCRIPTEN__ )
+#elif defined( __EMSCRIPTEN__ )
+	*sine = sin( radians );
+	*cosine = cos( radians );
+#elif defined( POSIX )
 	double __cosr, __sinr;
 	__asm ("fsincos" : "=t" (__cosr), "=u" (__sinr) : "0" (radians));
 
@@ -1204,6 +1207,9 @@ inline float SimpleSplineRemapValClamped( float val, float A, float B, float C, 
 
 FORCEINLINE int RoundFloatToInt(float f)
 {
+#if defined(__EMSCRIPTEN__)
+	return (int)f;
+#else
 #if defined(__i386__) || defined(_M_IX86) || defined( PLATFORM_WINDOWS_PC64 ) || defined(__x86_64__)
 	return _mm_cvtss_si32(_mm_load_ss(&f));
 #elif defined( _X360 )
@@ -1222,6 +1228,7 @@ FORCEINLINE int RoundFloatToInt(float f)
 #else
 #error Unknown architecture
 #endif
+#endif
 }
 
 FORCEINLINE unsigned char RoundFloatToByte(float f)
@@ -1235,7 +1242,9 @@ FORCEINLINE unsigned char RoundFloatToByte(float f)
 
 FORCEINLINE unsigned long RoundFloatToUnsignedLong(float f)
 {
-#if defined( _X360 )
+#if defined(__EMSCRIPTEN__)
+	return (unsigned long)f;
+#elif defined( _X360 )
 #ifdef Assert
 	MathlibAssert( IsFPUControlWordSet() );
 #endif
@@ -2188,4 +2197,3 @@ inline bool AlmostEqual( const Vector &a, const Vector &b, int maxUlps = 10)
 
 
 #endif	// MATH_BASE_H
-

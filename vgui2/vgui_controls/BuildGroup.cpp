@@ -869,8 +869,21 @@ void BuildGroup::PanelAdded(Panel *panel)
 //-----------------------------------------------------------------------------
 void BuildGroup::LoadControlSettings(const char *controlResourceName, const char *pathID, KeyValues *pPreloadedKeyValues, KeyValues *pConditions)
 {
+#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings entry resource='%s' pathID='%s' parent=%p preloaded=%p\n",
+		controlResourceName ? controlResourceName : "<null>", pathID ? pathID : "<null>",
+		(void *)m_pParentPanel, (void *)pPreloadedKeyValues );
+#endif
 	// make sure the file is registered
+	#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings before RegisterControlSettingsFile resource='%s'\n",
+		controlResourceName ? controlResourceName : "<null>" );
+	#endif
 	RegisterControlSettingsFile(controlResourceName, pathID);
+	#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings after RegisterControlSettingsFile resource='%s'\n",
+		controlResourceName ? controlResourceName : "<null>" );
+	#endif
 
 	// Use the keyvalues they passed in or load them.
 	KeyValues *rDat = pPreloadedKeyValues;
@@ -889,6 +902,11 @@ void BuildGroup::LoadControlSettings(const char *controlResourceName, const char
 		{
 			bSuccess = rDat->LoadFromFile(g_pFullFileSystem, controlResourceName, pathID);
 		}
+
+#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] LoadControlSettings after LoadFromFile resource='%s' success=%d rDat=%p\n",
+			controlResourceName ? controlResourceName : "<null>", bSuccess ? 1 : 0, (void *)rDat );
+#endif
 
 		// GoldSrc: Maybe posible to port?
 #if 0
@@ -914,8 +932,21 @@ void BuildGroup::LoadControlSettings(const char *controlResourceName, const char
 		}
 #endif
 	}
+	#ifdef __EMSCRIPTEN__
+	else
+	{
+		printf( "[BUILDGROUP] LoadControlSettings using preloaded KeyValues resource='%s' rDat=%p firstSubKey=%p\n",
+			controlResourceName ? controlResourceName : "<null>",
+			(void *)rDat,
+			rDat ? (void *)rDat->GetFirstSubKey() : NULL );
+	}
+	#endif
 
 	// save off the resource name
+	#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings before resource-name copy resource='%s'\n",
+		controlResourceName ? controlResourceName : "<null>" );
+	#endif
 	delete [] m_pResourceName;
 	m_pResourceName = new char[strlen(controlResourceName) + 1];
 	strcpy(m_pResourceName, controlResourceName);
@@ -928,21 +959,58 @@ void BuildGroup::LoadControlSettings(const char *controlResourceName, const char
 	}
 
 	// delete any controls not in both files
+	#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings before DeleteAllControlsCreatedByControlSettingsFile resource='%s'\n",
+		controlResourceName ? controlResourceName : "<null>" );
+	#endif
 	DeleteAllControlsCreatedByControlSettingsFile();
+	#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings after DeleteAllControlsCreatedByControlSettingsFile resource='%s'\n",
+		controlResourceName ? controlResourceName : "<null>" );
+	#endif
 
 	// loop through the resource data sticking info into controls
+#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings before ApplySettings resource='%s' firstSubKey=%p\n",
+		controlResourceName ? controlResourceName : "<null>", rDat ? (void *)rDat->GetFirstSubKey() : NULL );
+#endif
 	ApplySettings(rDat);
+	#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings after ApplySettings resource='%s' parent=%p\n",
+		controlResourceName ? controlResourceName : "<null>", (void *)m_pParentPanel );
+	#endif
 
 	if (m_pParentPanel)
 	{
+		#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] LoadControlSettings before parent invalidate/repaint resource='%s' parent=%p\n",
+			controlResourceName ? controlResourceName : "<null>", (void *)m_pParentPanel );
+		#endif
 		m_pParentPanel->InvalidateLayout();
 		m_pParentPanel->Repaint();
+		#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] LoadControlSettings after parent invalidate/repaint resource='%s' parent=%p\n",
+			controlResourceName ? controlResourceName : "<null>", (void *)m_pParentPanel );
+		#endif
 	}
 
 	if ( rDat != pPreloadedKeyValues )
 	{
+		#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] LoadControlSettings before deleteThis resource='%s' rDat=%p\n",
+			controlResourceName ? controlResourceName : "<null>", (void *)rDat );
+		#endif
 		rDat->deleteThis();
+		#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] LoadControlSettings after deleteThis resource='%s'\n",
+			controlResourceName ? controlResourceName : "<null>" );
+		#endif
 	}
+
+#ifdef __EMSCRIPTEN__
+	printf( "[BUILDGROUP] LoadControlSettings exit resource='%s' parent=%p\n",
+		controlResourceName ? controlResourceName : "<null>", (void *)m_pParentPanel );
+#endif
 }
 
 void BuildGroup::ProcessConditionalKeys( KeyValues *pData, KeyValues *pConditions )
@@ -1167,6 +1235,11 @@ void BuildGroup::ApplySettings( KeyValues *resourceData )
 			continue;
 
 		char const *keyName = controlKeys->GetName();
+#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] ApplySettings key='%s' control='%s'\n",
+			keyName ? keyName : "<null>",
+			controlKeys->GetString( "ControlName", "<none>" ) );
+#endif
 
 		// check to see if any buildgroup panels have this name
 		for ( int i = 0; i < _panelDar.Count(); i++ )
@@ -1257,11 +1330,26 @@ Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 	Panel *newPanel = NULL;
 	if (controlKeys)
 	{
+#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl request field='%s' class='%s' x=%d y=%d parent=%p context=%p\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			controlKeys->GetString("ControlName", "<none>"), x, y, m_pParentPanel, m_pBuildContext );
+#endif
 //		Warning( "Creating new control \"%s\" of type \"%s\"\n", controlKeys->GetString( "fieldName" ), controlKeys->GetString( "ControlName" ) );
 		KeyValues *keyVal = new KeyValues("ControlFactory", "ControlName", controlKeys->GetString("ControlName"));
+	#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl before RequestInfo field='%s' class='%s'\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			controlKeys->GetString("ControlName", "<none>") );
+	#endif
 		m_pBuildContext->RequestInfo(keyVal);
 		// returns NULL on failure
 		newPanel = (Panel *)keyVal->GetPtr("PanelPtr");
+	#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl after RequestInfo field='%s' class='%s' panel=%p\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			controlKeys->GetString("ControlName", "<none>"), (void *)newPanel );
+	#endif
 		keyVal->deleteThis();
 	}
 	else
@@ -1271,13 +1359,36 @@ Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 
 	if (newPanel)
 	{
+#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl created field='%s' class='%s' panel=%p\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			controlKeys->GetString("ControlName", "<none>"), (void *)newPanel );
+#endif
 		// panel successfully created
+	#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl before SetParent field='%s' panel=%p\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>", (void *)newPanel );
+	#endif
 		newPanel->SetParent(m_pParentPanel);	
+	#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl after SetParent field='%s' panel=%p\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>", (void *)newPanel );
+	#endif
 		newPanel->SetBuildGroup(this);
 		newPanel->SetPos(x, y);
 
 		newPanel->SetName(controlKeys->GetName()); // name before applysettings :)
+	#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl before ApplySettings field='%s' class='%s' panel=%p\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			controlKeys->GetString("ControlName", "<none>"), (void *)newPanel );
+	#endif
 		newPanel->ApplySettings(controlKeys);
+	#ifdef __EMSCRIPTEN__
+		printf( "[BUILDGROUP] NewControl after ApplySettings field='%s' class='%s' panel=%p\n",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			controlKeys->GetString("ControlName", "<none>"), (void *)newPanel );
+	#endif
 
 		newPanel->AddActionSignalTarget(m_pParentPanel);
 		newPanel->SetBuildModeEditable(true);

@@ -30,6 +30,32 @@
 #endif // _WIN32
 
 #include "tier0/threadtools.h"
+#include "tier0/memalloc.h"
+
+#if defined(__EMSCRIPTEN__)
+inline void *TSListAlignedMalloc( size_t size, size_t align )
+{
+	if( align <= sizeof( void * ))
+		return malloc( size );
+
+	return aligned_alloc( align, ( size + align - 1 ) & ~( align - 1 ));
+}
+
+inline void TSListAlignedFree( void *ptr )
+{
+	free( ptr );
+}
+#else
+inline void *TSListAlignedMalloc( size_t size, size_t align )
+{
+	return _aligned_malloc( size, align );
+}
+
+inline void TSListAlignedFree( void *ptr )
+{
+	_aligned_free( ptr );
+}
+#endif
 
 //-----------------------------------------------------------------------------
 
@@ -108,9 +134,9 @@ public:
 
 		T elem;
 
-		void *operator new( size_t size )													{ return ( TSLIST_NODE_ALIGNMENT > 4 ) ? _aligned_malloc( size, TSLIST_NODE_ALIGNMENT ) : malloc( size ); }
+		void *operator new( size_t size )													{ return ( TSLIST_NODE_ALIGNMENT > 4 ) ? TSListAlignedMalloc( size, TSLIST_NODE_ALIGNMENT ) : malloc( size ); }
 		void *operator new( size_t size, int nBlockUse, const char *pFileName, int nLine )	{ return operator new( size ); }
-		void operator delete( void *p )														{ if ( TSLIST_NODE_ALIGNMENT > 4 ) _aligned_free( p ); else free( p ); }
+		void operator delete( void *p )														{ if ( TSLIST_NODE_ALIGNMENT > 4 ) TSListAlignedFree( p ); else free( p ); }
 		void operator delete( void *p, int nBlockUse, const char *pFileName, int nLine )	{ operator delete(p); }
 	} TSLIST_NODE_ALIGN_POST;
 
@@ -126,9 +152,9 @@ public:
 #endif
 	}
 
-	void *operator new( size_t size )														{ return _aligned_malloc( size, TSLIST_HEAD_ALIGNMENT ); }
+	void *operator new( size_t size )														{ return TSListAlignedMalloc( size, TSLIST_HEAD_ALIGNMENT ); }
 	void *operator new( size_t size, int nBlockUse, const char *pFileName, int nLine )		{ return operator new( size ); }
-	void operator delete( void *pMem )														{ _aligned_free( pMem ); }
+	void operator delete( void *pMem )														{ TSListAlignedFree( pMem ); }
 	void operator delete( void *pMem, int nBlockUse, const char *pFileName, int nLine )		{ operator delete(pMem); }
 
 	Node_t *Push( Node_t *pNode )

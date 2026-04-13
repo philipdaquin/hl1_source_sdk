@@ -22,7 +22,7 @@
 // For rand(). We really need a library!
 #include <stdlib.h>
 
-#ifndef _X360
+#if !defined(_X360) && !defined(__EMSCRIPTEN__)
 // For MMX intrinsics
 #include <xmmintrin.h>
 #endif
@@ -233,7 +233,7 @@ private:
 
 FORCEINLINE void NetworkVarConstruct( Vector &v ) { v.Zero(); }
 
-#ifdef _X360
+#if defined(_X360) || defined(__EMSCRIPTEN__)
 #define USE_M64S 0
 #else
 #define USE_M64S 1
@@ -2335,4 +2335,3 @@ inline bool Vector::IsLengthLessThan( float val ) const
 }
 
 #endif
-

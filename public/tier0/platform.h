@@ -756,7 +756,7 @@ inline float DWordSwapAsm<float>( float f )
 // The typically used methods. 
 //-------------------------------------
 
-#if defined(__i386__) && !defined(VALVE_LITTLE_ENDIAN)
+#if (defined(__i386__) || defined(__EMSCRIPTEN__)) && !defined(VALVE_LITTLE_ENDIAN)
 #define VALVE_LITTLE_ENDIAN 1
 #endif
 

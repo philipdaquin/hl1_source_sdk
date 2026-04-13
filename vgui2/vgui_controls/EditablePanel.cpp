@@ -53,7 +53,11 @@ DECLARE_BUILD_FACTORY( EditablePanel );
 
 EditablePanel::EditablePanel(Panel *parent, const char *panelName) : Panel(parent, panelName), m_NavGroup(this)
 {
+	printf("[PANELDBG] EditablePanel::EditablePanel(parent=%p, name=%s) ENTRY this=%p\n",
+		parent, panelName ? panelName : "<null>", this);
 	_buildGroup = new BuildGroup(this, this);
+	printf("[PANELDBG] EditablePanel::EditablePanel(parent=%p, name=%s) AFTER BuildGroup this=%p buildGroup=%p\n",
+		parent, panelName ? panelName : "<null>", this, _buildGroup);
 	m_pszConfigName = NULL;
 	m_iConfigID = 0;
 	m_pDialogVariables = NULL;
@@ -61,6 +65,8 @@ EditablePanel::EditablePanel(Panel *parent, const char *panelName) : Panel(paren
 
 	// add ourselves to the build group
 	SetBuildGroup(GetBuildGroup());
+	printf("[PANELDBG] EditablePanel::EditablePanel(parent=%p, name=%s) EXIT this=%p\n",
+		parent, panelName ? panelName : "<null>", this);
 }
 
 //-----------------------------------------------------------------------------
@@ -68,7 +74,14 @@ EditablePanel::EditablePanel(Panel *parent, const char *panelName) : Panel(paren
 //-----------------------------------------------------------------------------
 EditablePanel::EditablePanel(Panel *parent, const char *panelName, HScheme hScheme) : Panel(parent, panelName, hScheme), m_NavGroup(this)
 {
+	// _buildGroup = new BuildGroup(this, this);
+
+	printf("[PANELDBG] EditablePanel::EditablePanel(parent=%p, name=%s, scheme=%lu) ENTRY this=%p\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)hScheme, this);
 	_buildGroup = new BuildGroup(this, this);
+	printf("[PANELDBG] EditablePanel::EditablePanel(parent=%p, name=%s, scheme=%lu) AFTER BuildGroup this=%p buildGroup=%p\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)hScheme, this, _buildGroup);
+
 	m_pszConfigName = NULL;
 	m_iConfigID = 0;
 	m_pDialogVariables = NULL;
@@ -76,6 +89,8 @@ EditablePanel::EditablePanel(Panel *parent, const char *panelName, HScheme hSche
 
 	// add ourselves to the build group
 	SetBuildGroup(GetBuildGroup());
+	printf("[PANELDBG] EditablePanel::EditablePanel(parent=%p, name=%s, scheme=%lu) EXIT this=%p\n",
+		parent, panelName ? panelName : "<null>", (unsigned long)hScheme, this);
 }
 
 #pragma warning( default : 4355 )
@@ -85,6 +100,8 @@ EditablePanel::EditablePanel(Panel *parent, const char *panelName, HScheme hSche
 //-----------------------------------------------------------------------------
 EditablePanel::~EditablePanel()
 {
+	printf("[PANELDBG] EditablePanel::~EditablePanel ENTRY this=%p buildGroup=%p dialogVars=%p\n",
+		this, _buildGroup, m_pDialogVariables);
 	delete [] m_pszConfigName;
 	delete _buildGroup;
 
@@ -92,6 +109,7 @@ EditablePanel::~EditablePanel()
 	{
 		m_pDialogVariables->deleteThis();
 	}
+	printf("[PANELDBG] EditablePanel::~EditablePanel EXIT this=%p\n", this);
 }
 
 //-----------------------------------------------------------------------------
@@ -99,15 +117,23 @@ EditablePanel::~EditablePanel()
 //-----------------------------------------------------------------------------
 void EditablePanel::OnChildAdded(VPANEL child)
 {
+	printf("[PANELDBG] EditablePanel::OnChildAdded ENTRY this=%p child=%u module=%s buildGroup=%p\n",
+		this, (unsigned int)child, GetModuleName() ? GetModuleName() : "<null>", _buildGroup);
 	BaseClass::OnChildAdded(child);
 
 	// add only if we're in the same module
 	Panel *panel = ipanel()->GetPanel(child, GetModuleName());
+	printf("[PANELDBG] EditablePanel::OnChildAdded after GetPanel this=%p child=%u panel=%p\n",
+		this, (unsigned int)child, panel);
 	if (panel)
 	{
+		printf("[PANELDBG] EditablePanel::OnChildAdded applying build group/signals this=%p childPanel=%p\n",
+			this, panel);
 		panel->SetBuildGroup(_buildGroup);
 		panel->AddActionSignalTarget(this);
 	}
+	printf("[PANELDBG] EditablePanel::OnChildAdded EXIT this=%p child=%u\n",
+		this, (unsigned int)child);
 }
 
 //-----------------------------------------------------------------------------
@@ -565,6 +591,21 @@ void EditablePanel::ActivateBuildMode()
 //-----------------------------------------------------------------------------
 void EditablePanel::LoadControlSettings(const char *resourceName, const char *pathID, KeyValues *pKeyValues, KeyValues *pConditions)
 {
+
+	printf("[EDITPANEL] LoadControlSettings -- ENTRY");
+	
+
+#ifdef __EMSCRIPTEN__
+	printf("[EDITPANEL] LoadControlSettings ENTRY this=%p name='%s' resource='%s' pathID='%s' buildGroup=%p preloaded=%p conditions=%p children=%d\n",
+		this,
+		GetName() ? GetName() : "<null>",
+		resourceName ? resourceName : "<null>",
+		pathID ? pathID : "<null>",
+		_buildGroup,
+		(void *)pKeyValues,
+		(void *)pConditions,
+		GetChildCount());
+#endif
 #if defined( DBGFLAG_ASSERT ) && !defined(OSX) && !defined(LINUX)
 	extern IFileSystem *g_pFullFileSystem;
 	// Since nobody wants to fix this assert, I'm making it a Msg instead:
@@ -575,9 +616,25 @@ void EditablePanel::LoadControlSettings(const char *resourceName, const char *pa
 		Warning( "Resource file \"%s\" not found on disk!\n", resourceName );
 	}
 #endif
+#ifdef __EMSCRIPTEN__
+	printf("[EDITPANEL] LoadControlSettings before BuildGroup::LoadControlSettings this=%p buildGroup=%p\n",
+		this, _buildGroup);
+#endif
 	_buildGroup->LoadControlSettings(resourceName, pathID, pKeyValues, pConditions);
+#ifdef __EMSCRIPTEN__
+	printf("[EDITPANEL] LoadControlSettings after BuildGroup::LoadControlSettings this=%p children=%d\n",
+		this, GetChildCount());
+#endif
 	ForceSubPanelsToUpdateWithNewDialogVariables();
+#ifdef __EMSCRIPTEN__
+	printf("[EDITPANEL] LoadControlSettings after ForceSubPanelsToUpdateWithNewDialogVariables this=%p\n",
+		this);
+#endif
 	InvalidateLayout();
+#ifdef __EMSCRIPTEN__
+	printf("[EDITPANEL] LoadControlSettings EXIT this=%p name='%s'\n",
+		this, GetName() ? GetName() : "<null>");
+#endif
 }
 
 //-----------------------------------------------------------------------------

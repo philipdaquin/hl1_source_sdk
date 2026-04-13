@@ -139,17 +139,12 @@ void CUtlBlockMemory<T,I>::Swap( CUtlBlockMemory< T, I > &mem )
 {
 	std::swap( m_pMemory, mem.m_pMemory );
     std::swap( m_nBlocks, mem.m_nBlocks );
-#ifdef __EMSCRIPTEN__
-    int tempMask = m_nIndexMask;
-    int tempShift = m_nIndexShift;
+    int nIndexMask = m_nIndexMask;
     m_nIndexMask = mem.m_nIndexMask;
+    mem.m_nIndexMask = nIndexMask;
+    int nIndexShift = m_nIndexShift;
     m_nIndexShift = mem.m_nIndexShift;
-    mem.m_nIndexMask = tempMask;
-    mem.m_nIndexShift = tempShift;
-#else
-    std::swap( m_nIndexMask, mem.m_nIndexMask );
-    std::swap( m_nIndexShift, mem.m_nIndexShift );
-#endif
+    mem.m_nIndexShift = nIndexShift;
 }
 
 

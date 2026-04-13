@@ -23,6 +23,7 @@
 
 #include <Color.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "tier0/dbg.h"
 #include "tier0/mem.h"
 #include "utlvector.h"
@@ -363,88 +364,102 @@ int KeyValues::GetNameSymbol() const
 //-----------------------------------------------------------------------------
 // Purpose: Read a single token from buffer (0 terminated)
 //-----------------------------------------------------------------------------
-const char *KeyValues::ReadToken( CUtlBuffer &buf, bool &wasQuoted, bool &wasConditional)
+const char *KeyValues::ReadToken(CUtlBuffer &buf, bool &wasQuoted, bool &wasConditional)
 {
-	wasQuoted = false;
-	wasConditional = false;
+    wasQuoted = false;
+    wasConditional = false;
 
-	if ( !buf.IsValid() )
-		return NULL; 
+    printf("[RT] ENTRY valid=%d pos=%d size=%d\n", buf.IsValid(), buf.TellGet(), buf.Size());
 
-	// eating white spaces and remarks loop
-	while ( true )
-	{
-		buf.EatWhiteSpace();
-		if ( !buf.IsValid() )
-			return NULL;	// file ends after reading whitespaces
+    if (!buf.IsValid())
+    {
+        printf("[RT] INVALID buffer, returning NULL\n");
+        return NULL;
+    }
 
-		// stop if it's not a comment; a new token starts here
-		if ( !buf.EatCPPComment() )
-			break;
-	}
+    while (true)
+    {
+        printf("[RT] before EatWhiteSpace pos=%d\n", buf.TellGet());
+        buf.EatWhiteSpace();
+        printf("[RT] after EatWhiteSpace pos=%d valid=%d\n", buf.TellGet(), buf.IsValid());
 
-	const char *c = (const char*)buf.PeekGet( sizeof(char), 0 );
-	if ( !c )
-		return NULL;
+        if (!buf.IsValid())
+        {
+            printf("[RT] invalid after EatWhiteSpace\n");
+            return NULL;
+        }
 
-	// read quoted strings specially
-	if ( *c == '\"' )
-	{
-		wasQuoted = true;
-		buf.GetDelimitedString( /*m_bHasEscapeSequences ? GetCStringCharConversion() :*/ GetNoEscCharConversion(), 
-			s_pTokenBuf, KEYVALUES_TOKEN_SIZE );
-		return s_pTokenBuf;
-	}
+        printf("[RT] before EatCPPComment pos=%d\n", buf.TellGet());
+        bool ate = buf.EatCPPComment();
+        printf("[RT] after EatCPPComment pos=%d ate=%d\n", buf.TellGet(), ate ? 1 : 0);
 
-	if ( *c == '{' || *c == '}' )
-	{
-		// it's a control char, just add this one char and stop reading
-		s_pTokenBuf[0] = *c;
-		s_pTokenBuf[1] = 0;
-		buf.SeekGet( CUtlBuffer::SEEK_CURRENT, 1 );
-		return s_pTokenBuf;
-	}
+        if (!ate)
+            break;
+    }
 
-	// read in the token until we hit a whitespace or a control character
-	bool bReportedError = false;
-	bool bConditionalStart = false;
-	int nCount = 0;
-	while ( c = (const char*)buf.PeekGet( sizeof(char), 0 ) )
-	{
-		// end of file
-		if ( *c == 0 )
-			break;
+    printf("[RT] after while loop pos=%d\n", buf.TellGet());
 
-		// break if any control character appears in non quoted tokens
-		if ( *c == '"' || *c == '{' || *c == '}' )
-			break;
+    const char *c = (const char*)buf.PeekGet(sizeof(char), 0);
+    printf("[RT] after PeekGet c=%p char='%c' val=%d\n", c, (c && *c >= 32) ? *c : '?', c ? (int)*c : -1);
 
-		if ( *c == '[' )
-			bConditionalStart = true;
+    if (!c)
+    {
+        printf("[RT] PeekGet returned NULL\n");
+        return NULL;
+    }
 
-		if ( *c == ']' && bConditionalStart )
-		{
-			wasConditional = true;
-		}
+    printf("[RT] checking quote char=%d\n", (int)*c);
 
-		// break on whitespace
-		if ( isspace(*c) )
-			break;
+    if (*c == '\"')
+    {
+        wasQuoted = true;
+        printf("[RT] before GetDelimitedString\n");
+        buf.GetDelimitedString(GetNoEscCharConversion(), s_pTokenBuf, KEYVALUES_TOKEN_SIZE);
+        printf("[RT] after GetDelimitedString result='%s'\n", s_pTokenBuf);
+        return s_pTokenBuf;
+    }
 
-		if (nCount < (KEYVALUES_TOKEN_SIZE-1) )
-		{
-			s_pTokenBuf[nCount++] = *c;	// add char to buffer
-		}
-		else if ( !bReportedError )
-		{
-			bReportedError = true;
-			g_KeyValuesErrorStack.ReportError(" ReadToken overflow" );
-		}
+    printf("[RT] checking brace char=%d\n", (int)*c);
 
-		buf.SeekGet( CUtlBuffer::SEEK_CURRENT, 1 );
-	}
-	s_pTokenBuf[ nCount ] = 0;
-	return s_pTokenBuf;
+    if (*c == '{' || *c == '}')
+    {
+        s_pTokenBuf[0] = *c;
+        s_pTokenBuf[1] = 0;
+        buf.SeekGet(CUtlBuffer::SEEK_CURRENT, 1);
+        printf("[RT] brace token='%c'\n", *c);
+        return s_pTokenBuf;
+    }
+
+    printf("[RT] entering token scan loop\n");
+
+    bool bReportedError = false;
+    bool bConditionalStart = false;
+    int nCount = 0;
+
+    while (c = (const char*)buf.PeekGet(sizeof(char), 0))
+    {
+        printf("[RT] scan char=%d '%c' nCount=%d\n", (int)*c, (*c >= 32) ? *c : '?', nCount);
+
+        if (*c == 0) break;
+        if (*c == '"' || *c == '{' || *c == '}') break;
+        if (*c == '[') bConditionalStart = true;
+        if (*c == ']' && bConditionalStart) wasConditional = true;
+        if (isspace(*c)) break;
+
+        if (nCount < (KEYVALUES_TOKEN_SIZE - 1))
+            s_pTokenBuf[nCount++] = *c;
+        else if (!bReportedError)
+        {
+            bReportedError = true;
+            g_KeyValuesErrorStack.ReportError(" ReadToken overflow");
+        }
+
+        buf.SeekGet(CUtlBuffer::SEEK_CURRENT, 1);
+    }
+
+    s_pTokenBuf[nCount] = 0;
+    printf("[RT] EXIT token='%s' nCount=%d\n", s_pTokenBuf, nCount);
+    return s_pTokenBuf;
 }
 
 //-----------------------------------------------------------------------------
@@ -475,7 +490,11 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 	//New code:
 	unsigned bufSize = fileSize + 1;
 
+#ifdef __EMSCRIPTEN__
+	char *buffer = (char *)malloc( bufSize );
+#else
 	char *buffer = new char[ bufSize ];
+#endif
 
 	Assert( buffer );
 
@@ -483,12 +502,23 @@ bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceN
 
 	buffer[ fileSize ] = 0; // null terminate file as EOF
 
+#ifdef __EMSCRIPTEN__
+	printf( "[KV-BUF] LoadFromFile resource='%s' buffer=%p size=%u owner=client-malloc\n",
+		resourceName ? resourceName : "<null>", (void *)buffer, bufSize );
+#endif
+
 	filesystem->Close( f );	// close file after reading
 
 	// TODO: shouldn't it pass pathID instead of nullptr?
 	bool retOK = LoadFromBuffer( resourceName, buffer, filesystem, nullptr, fileList );
 
+#ifdef __EMSCRIPTEN__
+	printf( "[KV-BUF] LoadFromFile free resource='%s' buffer=%p owner=client-malloc\n",
+		resourceName ? resourceName : "<null>", (void *)buffer );
+	free( buffer );
+#else
 	delete[] buffer;
+#endif
 
 	//Old code:
 	/*
@@ -1801,21 +1831,56 @@ void KeyValues::RecursiveMergeKeyValues( KeyValues *baseKV )
 //-----------------------------------------------------------------------------
 bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem* pFileSystem, const char *pPathID, std::set<std::string> *fileList )
 {
+#ifdef __EMSCRIPTEN__
+	printf( "[KV-PARSE] entry resource='%s' this=%p bufBase=%p bufSize=%d pathID='%s'\n",
+		resourceName ? resourceName : "<null>", (void *)this, (const void *)buf.Base(), buf.Size(),
+		pPathID ? pPathID : "<null>" );
+	// peek at first few bytes
+	const char *base = (const char *)buf.Base();
+	if (base && buf.Size() > 0)
+	{
+		printf("[KV-PARSE] first-bytes: '%c%c%c%c%c'\n",
+			base[0], base[1], base[2], base[3], base[4]);
+	}
+
+#endif
 	KeyValues *pPreviousKey = NULL;
 	KeyValues *pCurrentKey = this;
 	CUtlVector< KeyValues * > includedKeys;
 	CUtlVector< KeyValues * > baseKeys;
 	bool wasQuoted;
 	bool wasConditional;
+	int topLevelTokenCount = 0;
 	g_KeyValuesErrorStack.SetFilename( resourceName );	
+#ifdef __EMSCRIPTEN__
+	printf( "[KV-PARSE] before-parse resource='%s'\n", resourceName ? resourceName : "<null>" );
+#endif
 	do 
 	{
+		printf("[KV-PARSE] top of loop valid=%d tell=%d size=%d\n",
+			buf.IsValid() ? 1 : 0, buf.TellGet(), buf.Size());
+
 		bool bAccepted = true;
 
 		// the first thing must be a key
+		const int tokenStart = buf.TellGet();
 		const char *s = ReadToken( buf, wasQuoted, wasConditional );
+
+    	printf("[KV-PARSE] after ReadToken start=%d end=%d s=%s quoted=%d conditional=%d\n",
+			tokenStart, buf.TellGet(), s ? s : "<null>", wasQuoted ? 1 : 0, wasConditional ? 1 : 0);
+
+
 		if ( !buf.IsValid() || !s || *s == 0 )
 			break;
+
+		++topLevelTokenCount;
+#ifdef __EMSCRIPTEN__
+		if( topLevelTokenCount <= 10 || ( topLevelTokenCount % 25 ) == 0 )
+		{
+			printf( "[KV-PARSE] token[%d] resource='%s' key='%s' quoted=%d conditional=%d\n",
+				topLevelTokenCount, resourceName ? resourceName : "<null>", s, wasQuoted ? 1 : 0, wasConditional ? 1 : 0 );
+		}
+#endif
 
 		if ( !Q_stricmp( s, "#include" ) )	// special include macro (not a key name)
 		{
@@ -1868,20 +1933,31 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 		}
 
 		// get the '{'
+		const int braceStart = buf.TellGet();
 		s = ReadToken( buf, wasQuoted, wasConditional );
+		printf("[KV-PARSE] header-followup start=%d end=%d token=%s quoted=%d conditional=%d\n",
+			braceStart, buf.TellGet(), s ? s : "<null>", wasQuoted ? 1 : 0, wasConditional ? 1 : 0);
 
 		if ( wasConditional )
 		{
 			bAccepted = EvaluateConditional( s );
 
 			// Now get the '{'
+			const int conditionalBraceStart = buf.TellGet();
 			s = ReadToken( buf, wasQuoted, wasConditional );
+			printf("[KV-PARSE] conditional-followup start=%d end=%d token=%s quoted=%d conditional=%d accepted=%d\n",
+				conditionalBraceStart, buf.TellGet(), s ? s : "<null>", wasQuoted ? 1 : 0,
+				wasConditional ? 1 : 0, bAccepted ? 1 : 0);
 		}
 
 		if ( s && *s == '{' && !wasQuoted )
 		{
 			// header is valid so load the file
+			printf("[KV-PARSE] recurse-enter key=%s tell=%d\n",
+				pCurrentKey ? pCurrentKey->GetName() : "<null>", buf.TellGet());
 			pCurrentKey->RecursiveLoadFromBuffer( resourceName, buf );
+			printf("[KV-PARSE] recurse-exit key=%s tell=%d\n",
+				pCurrentKey ? pCurrentKey->GetName() : "<null>", buf.TellGet());
 		}
 		else
 		{
@@ -1902,6 +1978,11 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 			pCurrentKey = NULL;
 		}
 	} while ( buf.IsValid() );
+
+#ifdef __EMSCRIPTEN__
+	printf( "[KV-PARSE] after-parse resource='%s' topLevelTokens=%d included=%d base=%d\n",
+		resourceName ? resourceName : "<null>", topLevelTokenCount, includedKeys.Count(), baseKeys.Count() );
+#endif
 
 	AppendIncludedKeys( includedKeys );
 	{
@@ -1926,6 +2007,11 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 	}
 
 	g_KeyValuesErrorStack.SetFilename( "" );	
+
+#ifdef __EMSCRIPTEN__
+	printf( "[KV-PARSE] return resource='%s' this=%p sub=%p peer=%p\n",
+		resourceName ? resourceName : "<null>", (void *)this, (void *)m_pSub, (void *)m_pPeer );
+#endif
 
 	return true;
 }
@@ -1953,6 +2039,7 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 	CKeyErrorContext errorReport(this);
 	bool wasQuoted;
 	bool wasConditional;
+	int nestedTokenCount = 0;
 	// keep this out of the stack until a key is parsed
 	CKeyErrorContext errorKey( INVALID_KEY_SYMBOL );
 	while ( 1 )
@@ -1976,6 +2063,15 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 
 		if ( *name == '}' && !wasQuoted )	// top level closed, stop reading
 			break;
+
+		++nestedTokenCount;
+#ifdef __EMSCRIPTEN__
+		if( nestedTokenCount <= 10 || ( nestedTokenCount % 50 ) == 0 )
+		{
+			printf( "[KV-PARSE] nested[%d] resource='%s' section='%s'\n",
+				nestedTokenCount, resourceName ? resourceName : "<null>", name );
+		}
+#endif
 
 		// Always create the key; note that this could potentially
 		// cause some duplication, but that's what we want sometimes
