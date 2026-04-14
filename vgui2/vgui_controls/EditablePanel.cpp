@@ -38,6 +38,87 @@
 
 #include "FileSystem.h"
 #include "fmtstr.h"
+#include <string>
+#include <vector>
+#include "vdf_parser.hpp"
+
+namespace
+{
+bool ReadFileToString(const char *path, std::string &out)
+{
+	if (!g_pFullFileSystem || !path || !path[0])
+		return false;
+
+	FileHandle_t file = g_pFullFileSystem->Open(path, "rb");
+	if (file == FILESYSTEM_INVALID_HANDLE)
+		return false;
+
+	unsigned int size = g_pFullFileSystem->Size(file);
+	out.assign(size, '\0');
+	if (size > 0)
+	{
+		int read = g_pFullFileSystem->Read(&out[0], static_cast<int>(size), file);
+		if (read < 0)
+		{
+			g_pFullFileSystem->Close(file);
+			return false;
+		}
+		out.resize(static_cast<size_t>(read));
+	}
+
+	g_pFullFileSystem->Close(file);
+	return true;
+}
+
+KeyValues *ConvertVdfNodeToKeyValues(const tyti::vdf::multikey_object &node)
+{
+	KeyValues *kv = new KeyValues(node.name.c_str());
+
+	for (const auto &attrib : node.attribs)
+	{
+		kv->SetString(attrib.first.c_str(), attrib.second.c_str());
+	}
+
+	for (const auto &childEntry : node.childs)
+	{
+		if (!childEntry.second)
+			continue;
+
+		kv->AddSubKey(ConvertVdfNodeToKeyValues(*childEntry.second));
+	}
+
+	return kv;
+}
+
+KeyValues *LoadKeyValuesWithVdfParser(const char *resourcePath)
+{
+	std::string fileData;
+	if (!ReadFileToString(resourcePath, fileData))
+	{
+		printf("[VGUI_RES] VDF parser failed to read '%s'\n", resourcePath ? resourcePath : "<null>");
+		return NULL;
+	}
+
+	bool ok = false;
+	tyti::vdf::Options options;
+	options.ignore_includes = false;
+	options.ignore_all_platform_conditionals = false;
+	options.strip_escape_symbols = true;
+
+	tyti::vdf::multikey_object root =
+		tyti::vdf::read<tyti::vdf::multikey_object>(fileData.begin(), fileData.end(), &ok, options);
+	if (!ok)
+	{
+		printf("[VGUI_RES] VDF parser failed to parse '%s'\n", resourcePath ? resourcePath : "<null>");
+		return NULL;
+	}
+
+	printf("[VGUI_RES] VDF parser parsed root name='%s' attribs=%zu childs=%zu\n",
+		root.name.c_str(), root.attribs.size(), root.childs.size());
+
+	return ConvertVdfNodeToKeyValues(root);
+}
+}
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
@@ -620,7 +701,26 @@ void EditablePanel::LoadControlSettings(const char *resourceName, const char *pa
 	printf("[EDITPANEL] LoadControlSettings before BuildGroup::LoadControlSettings this=%p buildGroup=%p\n",
 		this, _buildGroup);
 #endif
-	_buildGroup->LoadControlSettings(resourceName, pathID, pKeyValues, pConditions);
+	if (!pKeyValues)
+	{
+#ifdef __EMSCRIPTEN__
+		KeyValues *parsed = LoadKeyValuesWithVdfParser(resourceName);
+		if (!parsed)
+		{
+			Error("LoadControlSettings: VDF parsing failed for '%s'\n", resourceName ? resourceName : "<null>");
+			return;
+		}
+
+		_buildGroup->LoadControlSettings(resourceName, pathID, parsed, pConditions);
+		parsed->deleteThis();
+#else
+		_buildGroup->LoadControlSettings(resourceName, pathID, pKeyValues, pConditions);
+#endif
+	}
+	else
+	{
+		_buildGroup->LoadControlSettings(resourceName, pathID, pKeyValues, pConditions);
+	}
 #ifdef __EMSCRIPTEN__
 	printf("[EDITPANEL] LoadControlSettings after BuildGroup::LoadControlSettings this=%p children=%d\n",
 		this, GetChildCount());

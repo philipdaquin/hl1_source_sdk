@@ -12,6 +12,57 @@
 #include <vgui/ISurface.h>
 #include <vgui_controls/Controls.h>
 #include <locale.h>
+#include <string>
+#include <vector>
+#include "vdf_parser.hpp"
+
+namespace
+{
+bool ReadFileToString(IFileSystem *filesystem, const char *path, const char *pathID, std::string &out)
+{
+	if (!filesystem || !path || !path[0])
+		return false;
+
+	FileHandle_t file = filesystem->Open(path, "rb", pathID);
+	if (file == FILESYSTEM_INVALID_HANDLE)
+		return false;
+
+	unsigned int size = filesystem->Size(file);
+	out.assign(size, '\0');
+	if (size > 0)
+	{
+		int read = filesystem->Read(&out[0], static_cast<int>(size), file);
+		if (read < 0)
+		{
+			filesystem->Close(file);
+			return false;
+		}
+		out.resize(static_cast<size_t>(read));
+	}
+
+	filesystem->Close(file);
+	return true;
+}
+
+KeyValues *ConvertVdfNodeToKeyValues(const tyti::vdf::multikey_object &node)
+{
+	KeyValues *kv = new KeyValues(node.name.c_str());
+
+	for (const auto &attrib : node.attribs)
+	{
+		kv->SetString(attrib.first.c_str(), attrib.second.c_str());
+	}
+
+	for (const auto &childEntry : node.childs)
+	{
+		if (!childEntry.second)
+			continue;
+		kv->AddSubKey(ConvertVdfNodeToKeyValues(*childEntry.second));
+	}
+
+	return kv;
+}
+}
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -118,111 +169,56 @@ public:
 
 	virtual HScheme LoadSchemeFromFilePath(const char *fileName, const char *pathID, const char *tag)
 	{
-		/**
-		 * Since Source 2007 KeyValues support platform conditionals:
-		 *     "name" "Tahoma"  [!$OSX]
-		 *     "name" "Verdana" [$OSX]
-		 * GoldSource, however, does not, so schemes containing them will be parsed incorrectly.
-		 *
-		 * This LoadSchemeFromFile will load fileName, parse conditionals and save the file
-		 * as filename.res.i and load it with m_pEngineIface->LoadSchemeFromFile.
-		 *
-		 * It will only do that if file was changed since last time it was compiled.
-		 */
+		printf("[VGUI_SCHEME] LoadSchemeFromFilePath entry file='%s' pathID='%s' tag='%s'\n",
+			fileName ? fileName : "<null>",
+			pathID ? pathID : "<null>",
+			tag ? tag : "<null>");
+		fflush(stdout);
 
-		constexpr int SCHEME_VERSION = 2;
+		if (!g_pFullFileSystem || !fileName || !fileName[0])
+		{
+			printf("[VGUI_SCHEME] LoadSchemeFromFilePath invalid args file='%s' pathID='%s'\n",
+				fileName ? fileName : "<null>", pathID ? pathID : "<null>");
+			fflush(stdout);
+			return 0;
+		}
 
+		std::string fileData;
+		if (!ReadFileToString(g_pFullFileSystem, fileName, pathID, fileData))
+		{
+			printf("[VGUI_SCHEME] LoadSchemeFromFilePath open/read failed file='%s' pathID='%s'\n",
+				fileName, pathID ? pathID : "<null>");
+			fflush(stdout);
+			return 0;
+		}
+
+		bool ok = false;
+		tyti::vdf::Options options;
+		options.ignore_includes = false;
+		options.ignore_all_platform_conditionals = false;
+		options.strip_escape_symbols = true;
+
+		printf("[VGUI_SCHEME] LoadSchemeFromFilePath parsing VDF file='%s' bytes=%zu\n",
+			fileName, fileData.size());
+		fflush(stdout);
+
+		tyti::vdf::multikey_object root =
+			tyti::vdf::read<tyti::vdf::multikey_object>(fileData.begin(), fileData.end(), &ok, options);
+		if (!ok)
+		{
+			printf("[VGUI_SCHEME] LoadSchemeFromFilePath VDF parse failed file='%s'\n", fileName);
+			fflush(stdout);
+			return 0;
+		}
+
+		KeyValuesAD converted(ConvertVdfNodeToKeyValues(root));
 		char fileNameComp[256];
 		snprintf(fileNameComp, sizeof(fileNameComp), "%s.i", fileName);
+		converted->SaveToFile(g_pFullFileSystem, fileNameComp, pathID);
+		printf("[VGUI_SCHEME] LoadSchemeFromFilePath wrote converted compiled file='%s' root='%s' attribs=%zu childs=%zu\n",
+			fileNameComp, root.name.c_str(), root.attribs.size(), root.childs.size());
+		fflush(stdout);
 
-		// Get orig file modification date
-		int origModDate = g_pFullFileSystem->GetFileTime(fileName);
-
-		// Try to open compiled file
-		bool bNeedRecompile = false;
-		KeyValues *compiled = new KeyValues("Scheme");
-
-		if (compiled->LoadFromFile(g_pFullFileSystem, fileNameComp, pathID))
-		{
-			// Check modification date and version
-			int modDate = compiled->GetInt("OrigModDate");
-			int version = compiled->GetInt("PreprocessorVersion", 0);
-			if (origModDate == 0 || modDate == 0 || origModDate != modDate || version != SCHEME_VERSION)
-			{
-				bNeedRecompile = true;
-			}
-			else
-			{
-				// Also check includes
-				KeyValues *includes = compiled->FindKey("Includes");
-
-				if (includes)
-				{
-					for (KeyValues *sub = includes->GetFirstValue(); sub; sub = sub->GetNextValue())
-					{
-						const char *includeName= sub->GetName();
-						int date = sub->GetInt();
-
-						if (date != g_pFullFileSystem->GetFileTime(includeName))
-						{
-							bNeedRecompile = true;
-							break;
-						}
-					}
-				}
-			}
-		}
-		else
-		{
-			// Failed to open
-			bNeedRecompile = true;
-		}
-		compiled->deleteThis();
-
-		if (bNeedRecompile)
-		{
-			// Msg("LoadSchemeFromFile: '%s' has changed, will be recompiled.\n", fileName);
-
-			// Load original file
-			KeyValuesAD orig(new KeyValues("Scheme"));
-			std::set<std::string> includeList;
-
-			if (orig->LoadFromFile(g_pFullFileSystem, fileName, pathID, &includeList))
-			{
-				// Set modification date and version
-				orig->SetInt("OrigModDate", origModDate);
-				orig->SetInt("PreprocessorVersion", SCHEME_VERSION);
-
-				// Save all include dates as well
-				KeyValues *includes = new KeyValues("Includes");
-
-				for (const std::string &i : includeList)
-				{
-					int date = g_pFullFileSystem->GetFileTime(i.c_str());
-
-					// A hack so we can have slashes in the key name
-					// Otherwise they would've been parsed as a path
-					KeyValues *kv = new KeyValues(i.c_str());
-					kv->SetInt(nullptr, date);
-					includes->AddSubKey(kv);
-				}
-
-				orig->AddSubKey(includes);
-
-				// Save new file
-				char dir[256];
-				V_ExtractFilePath(fileName, dir, sizeof(dir));
-				g_pFullFileSystem->CreateDirHierarchy(dir, pathID);
-				orig->SaveToFile(g_pFullFileSystem, fileNameComp, pathID);
-			}
-			else
-			{
-				Error("LoadSchemeFromFile: Failed to open '%s'\n", fileName);
-				return 0;
-			}
-		}
-
-		// Load compiled file
 		return m_pEngineIface->LoadSchemeFromFile(fileNameComp, tag);
 	}
 };

@@ -181,6 +181,7 @@ source_sdk_check_winxp_support( vgui_controls )
 
 target_include_directories( vgui_controls PRIVATE
 	${SOURCE_SDK_INCLUDE_PATHS}
+	${SOURCE_SDK_ROOT}/../cs16-client/third_party/ValveFileVDF
 )
 
 target_compile_definitions( vgui_controls PRIVATE
