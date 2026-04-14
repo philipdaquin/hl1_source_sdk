@@ -185,7 +185,8 @@ ScrollBar::ScrollBar(Panel *parent, const char *panelName, bool vertical) : Pane
 //-----------------------------------------------------------------------------
 void ScrollBar::ApplySchemeSettings(IScheme *pScheme)
 {
-	/*
+	BaseClass::ApplySchemeSettings(pScheme);
+
 	const char *resourceString = pScheme->GetResourceString("ScrollBar.Wide");
 
 	if (resourceString)
@@ -207,12 +208,7 @@ void ScrollBar::ApplySchemeSettings(IScheme *pScheme)
 			SetSize( GetWide(), value );
 		}
 	}
-	*/
 
-	BaseClass::ApplySchemeSettings(pScheme);
-
-	// Keep layout stable while avoiding scheme vtable calls during WASM bring-up.
-	(void)pScheme;
 	UpdateButtonsForImages();
 }
 

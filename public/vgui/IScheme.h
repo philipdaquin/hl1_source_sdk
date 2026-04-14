@@ -14,6 +14,7 @@
 
 #include <vgui/VGUI2.h>
 #include "tier1/interface.h"
+#include "../Color.h"
 
 class Color;
 
@@ -46,7 +47,13 @@ public:
 	//virtual char const *GetFontName( const HFont& font ) = 0;
 
 	// colors
-	virtual Color GetColor(const char *colorName, Color defaultColor) = 0;
+	virtual void GetColorInto( const char *colorName, const Color &defaultColor, Color *pOutColor ) = 0;
+	inline Color GetColor( const char *colorName, Color defaultColor )
+	{
+		Color outColor = defaultColor;
+		GetColorInto( colorName, defaultColor, &outColor );
+		return outColor;
+	}
 
 	// New in HL25 (linux build 9890)
 	virtual vgui2::HFont GetFontEx(const char *fontName, bool proportional, bool hdProportional) = 0;

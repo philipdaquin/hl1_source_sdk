@@ -378,7 +378,7 @@ void MenuItem::ApplySchemeSettings(IScheme *pScheme)
 	// chain back first
 	Button::ApplySchemeSettings(pScheme);
 
-	/*
+	// get color settings
 	SetDefaultColor(GetSchemeColor("Menu.TextColor", GetFgColor(), pScheme), GetSchemeColor("Menu.BgColor", GetBgColor(), pScheme));
 	SetArmedColor(GetSchemeColor("Menu.ArmedTextColor", GetFgColor(), pScheme), GetSchemeColor("Menu.ArmedBgColor", GetBgColor(), pScheme));
 	SetDepressedColor(GetSchemeColor("Menu.ArmedTextColor", GetFgColor(), pScheme), GetSchemeColor("Menu.ArmedBgColor", GetBgColor(), pScheme));
@@ -404,31 +404,6 @@ void MenuItem::ApplySchemeSettings(IScheme *pScheme)
 		m_pCurrentKeyBinding->SetFont(pScheme->GetFont("Default", IsProportional() ));
 		m_pCurrentKeyBinding->ResizeImageToContent();
 	}
-	*/
-
-	// Avoid scheme vtable calls during WASM bring-up.
-	SetDefaultColor( Color( 255, 255, 255, 255 ), Color( 0, 0, 0, 255 ) );
-	SetArmedColor( Color( 255, 255, 255, 255 ), Color( 0, 0, 0, 255 ) );
-	SetDepressedColor( Color( 255, 255, 255, 255 ), Color( 0, 0, 0, 255 ) );
-	SetTextInset( 0, 0 );
-
-	if ( m_pCascadeArrow )
-	{
-		m_pCascadeArrow->ResizeImageToContent();
-		AddImage( m_pCascadeArrow, 0 );
-	}
-	else if ( m_bCheckable )
-	{
-		SetImageAtIndex( 0, m_pCheck, CHECK_INSET );
-		( static_cast<MenuItemCheckImage *>(m_pCheck) )->ResizeImageToContent();
-	}
-
-	if ( m_pCurrentKeyBinding )
-	{
-		m_pCurrentKeyBinding->ResizeImageToContent();
-	}
-
-	(void)pScheme;
 
 	// Have the menu redo the layout
 	// Get the parent to resize

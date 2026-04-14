@@ -85,7 +85,8 @@ Label::~Label()
 {
 	delete _textImage;
 	delete [] _associateName;
-	delete [] _fontOverrideName;
+	// _fontOverrideName can be corrupted by resource reload paths on wasm; avoid
+	// freeing it here so teardown doesn't crash the UI.
 }
 
 //-----------------------------------------------------------------------------
@@ -1018,14 +1019,50 @@ void Label::ApplySchemeSettings(IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 
-	/*
+	if ( pScheme )
+	{
+		void **vtable = *(void ***)pScheme;
+		void *slot4 = vtable ? vtable[4] : NULL;
+		printf( "VGUI2: Label::ApplySchemeSettings this=%p scheme=%p vtable=%p slot4=%p fontOverride='%s'\n",
+			this,
+			pScheme,
+			vtable,
+			slot4,
+			_fontOverrideName ? _fontOverrideName : "<null>" );
+		fflush( stdout );
+	}
+	else
+	{
+		printf( "VGUI2: Label::ApplySchemeSettings this=%p scheme=<null> fontOverride='%s'\n",
+			this,
+			_fontOverrideName ? _fontOverrideName : "<null>" );
+		fflush( stdout );
+	}
+
 	if (_fontOverrideName)
 	{
+		void **fontVtable = pScheme ? *(void ***)pScheme : NULL;
+		printf( "VGUI2: Label::ApplySchemeSettings pre-GetFont this=%p scheme=%p vtable=%p slot4=%p fontOverride='%s'\n",
+			this,
+			pScheme,
+			fontVtable,
+			fontVtable ? fontVtable[4] : NULL,
+			_fontOverrideName ? _fontOverrideName : "<null>" );
+		fflush( stdout );
+
 		// use the custom specified font since we have one set
 		SetFont(pScheme->GetFont(_fontOverrideName, IsProportional()));
 	}
 	if ( GetFont() == INVALID_FONT )
 	{
+		void **fontVtable = pScheme ? *(void ***)pScheme : NULL;
+		printf( "VGUI2: Label::ApplySchemeSettings pre-DefaultFont this=%p scheme=%p vtable=%p slot4=%p\n",
+			this,
+			pScheme,
+			fontVtable,
+			fontVtable ? fontVtable[4] : NULL );
+		fflush( stdout );
+
 		SetFont( pScheme->GetFont( "Default", IsProportional() ) );
 	}
 
@@ -1048,12 +1085,6 @@ void Label::ApplySchemeSettings(IScheme *pScheme)
 	}
 
 	_associateColor = GetSchemeColor("Label.SelectedTextColor", pScheme);
-	*/
-
-	// Avoid scheme vtable font lookups during WASM bring-up.
-	// Keep whatever font state the panel already has rather than
-	// calling into IScheme::GetFont here.
-	(void)pScheme;
 
 	if ( m_bWrap || m_bCenterWrap )
 	{
@@ -1091,26 +1122,6 @@ void Label::ApplySchemeSettings(IScheme *pScheme)
 
 		_imageDar[i].image = NULL;
 	}
-
-	SetDisabledFgColor1(GetSchemeColor("Label.DisabledFgColor1", pScheme));
-	SetDisabledFgColor2(GetSchemeColor("Label.DisabledFgColor2", pScheme));
-	SetBgColor(GetSchemeColor("Label.BgColor", pScheme));
-
-	switch (_textColorState)
-	{
-	case CS_DULL:
-		SetFgColor(GetSchemeColor("Label.TextDullColor", pScheme));
-		break;
-	case CS_BRIGHT:
-		SetFgColor(GetSchemeColor("Label.TextBrightColor", pScheme));
-		break;
-	case CS_NORMAL:
-	default:
-		SetFgColor(GetSchemeColor("Label.TextColor", pScheme));
-		break;
-	}
-
-	_associateColor = GetSchemeColor("Label.SelectedTextColor", pScheme);
 }
 
 //-----------------------------------------------------------------------------
@@ -1186,19 +1197,48 @@ void Label::GetSettings( KeyValues *outResourceData )
 //-----------------------------------------------------------------------------
 void Label::ApplySettings( KeyValues *inResourceData )
 {
-	printf("[LABEL] ApplySettings ENTRY this=%p name='%s' kv=%p kvName='%s' control='%s'\n",
+	void **vtable = *(void ***)this;
+	void *slot4 = vtable ? vtable[4] : NULL;
+	unsigned char *fontOverrideBytes = reinterpret_cast<unsigned char *>(this) + 368;
+	void *fontOverridePtr = *reinterpret_cast<void **>(fontOverrideBytes);
+	void **resourceVtable = inResourceData ? *(void ***)inResourceData : NULL;
+	void *resourceSlot0 = resourceVtable ? resourceVtable[0] : NULL;
+	void *resourceSlot1 = resourceVtable ? resourceVtable[1] : NULL;
+	void *resourceSlot2 = resourceVtable ? resourceVtable[2] : NULL;
+	void *resourceSlot3 = resourceVtable ? resourceVtable[3] : NULL;
+	void *resourceSlot12 = resourceVtable ? resourceVtable[12] : NULL;
+	printf( "VGUI2: Label::ApplySettings this=%p vtable=%p slot4=%p resource='%s'\n",
 		this,
-		GetName() ? GetName() : "<null>",
-		(void *)inResourceData,
-		(inResourceData && inResourceData->GetName()) ? inResourceData->GetName() : "<null>",
-		inResourceData ? inResourceData->GetString("ControlName", "<none>") : "<none>");
-	BaseClass::ApplySettings( inResourceData );
-	printf("[LABEL] after BaseClass::ApplySettings this=%p name='%s'\n",
-		this,
-		GetName() ? GetName() : "<null>");
+		vtable,
+		slot4,
+		inResourceData ? inResourceData->GetName() : "<null>" );
+	printf( "VGUI2: Label::ApplySettings kv=%p kv_vtable=%p s0=%p s1=%p s2=%p s3=%p s12=%p\n",
+		inResourceData,
+		resourceVtable,
+		resourceSlot0,
+		resourceSlot1,
+		resourceSlot2,
+		resourceSlot3,
+		resourceSlot12 );
+	printf( "VGUI2: Label::ApplySettings _fontOverrideName=%p raw368=%02x %02x %02x %02x %02x %02x %02x %02x\n",
+		fontOverridePtr,
+		fontOverrideBytes[0],
+		fontOverrideBytes[1],
+		fontOverrideBytes[2],
+		fontOverrideBytes[3],
+		fontOverrideBytes[4],
+		fontOverrideBytes[5],
+		fontOverrideBytes[6],
+		fontOverrideBytes[7] );
+	fflush( stdout );
 
-	/*
+	BaseClass::ApplySettings( inResourceData );
+
 	// label settings
+	printf( "VGUI2: Label::ApplySettings GetString(labelText) kv=%p slot12=%p\n",
+		inResourceData,
+		resourceSlot12 );
+	fflush( stdout );
 	const char *labelText =	inResourceData->GetString( "labelText", NULL );
 	if ( labelText )
 	{
@@ -1275,22 +1315,46 @@ void Label::ApplySettings( KeyValues *inResourceData )
 		Q_strncpy( _associateName, associateName, len );
 	}
 
+	if (Q_atoi( inResourceData->GetString("dulltext", "0") ) == 1)
+	{
+		SetTextColorState(CS_DULL);
+	}
+	else if (Q_atoi( inResourceData->GetString("brighttext", "0") ) == 1)
+	{
+		SetTextColorState(CS_BRIGHT);
+	}
+	else
+	{
+		SetTextColorState(CS_NORMAL);
+	}
+
 	// font settings
+	printf( "VGUI2: Label::ApplySettings GetString(font) kv=%p slot12=%p\n",
+		inResourceData,
+		resourceSlot12 );
+	fflush( stdout );
 	const char *overrideFont = inResourceData->GetString("font", "");
 	IScheme *pScheme = scheme()->GetIScheme( GetScheme() );
+	void **schemeVtable = pScheme ? *(void ***)pScheme : NULL;
+	void *schemeSlot4 = schemeVtable ? schemeVtable[4] : NULL;
+	printf( "VGUI2: Label::ApplySettings scheme=%p scheme_vtable=%p s4=%p fontptr=%p\n",
+		pScheme,
+		schemeVtable,
+		schemeSlot4,
+		overrideFont );
+	fflush( stdout );
 
-	if (*overrideFont)
+	if ( !pScheme )
 	{
-		delete [] _fontOverrideName;
-		int len = Q_strlen(overrideFont) + 1;
-		_fontOverrideName = new char[ len ];
-		Q_strncpy(_fontOverrideName, overrideFont, len );
-		SetFont(pScheme->GetFont(_fontOverrideName, IsProportional()));
+		printf( "VGUI2: Label::ApplySettings scheme=<null>, skipping font apply\n" );
+		fflush( stdout );
 	}
-	else if (_fontOverrideName)
+	else if ( overrideFont && *overrideFont )
 	{
-		delete [] _fontOverrideName;
-		_fontOverrideName = NULL;
+		SetFont(pScheme->GetFont(overrideFont, IsProportional()));
+	}
+	else
+	{
 		SetFont(pScheme->GetFont("Default", IsProportional()));
 	}
 
@@ -1315,62 +1379,8 @@ void Label::ApplySettings( KeyValues *inResourceData )
 
 	bool bAllCaps = inResourceData->GetInt("allcaps", 0) > 0;
 	SetAllCaps( bAllCaps );
-	*/
-
-	// Restore the safe subset first: text, alignment, and basic text state.
-	// Keep scheme/font lookups out of this path until the render tree is visible.
-	const char *labelText = inResourceData->GetString( "labelText", NULL );
-	if ( labelText )
-	{
-		SetText(labelText);
-	}
-
-	const char *alignmentString = inResourceData->GetString( "textAlignment", "" );
-	int align = -1;
-
-	if ( !stricmp(alignmentString, "north-west") )
-		align = a_northwest;
-	else if ( !stricmp(alignmentString, "north") )
-		align = a_north;
-	else if ( !stricmp(alignmentString, "north-east") )
-		align = a_northeast;
-	else if ( !stricmp(alignmentString, "west") )
-		align = a_west;
-	else if ( !stricmp(alignmentString, "center") )
-		align = a_center;
-	else if ( !stricmp(alignmentString, "east") )
-		align = a_east;
-	else if ( !stricmp(alignmentString, "south-west") )
-		align = a_southwest;
-	else if ( !stricmp(alignmentString, "south") )
-		align = a_south;
-	else if ( !stricmp(alignmentString, "south-east") )
-		align = a_southeast;
-
-	if ( align != -1 )
-	{
-		SetContentAlignment( (Alignment)align );
-	}
-
-	if (inResourceData->GetInt("dulltext", 0) == 1)
-	{
-		SetTextColorState(CS_DULL);
-	}
-	else if (inResourceData->GetInt("brighttext", 0) == 1)
-	{
-		SetTextColorState(CS_BRIGHT);
-	}
-	else
-	{
-		SetTextColorState(CS_NORMAL);
-	}
 
 	InvalidateLayout(true);
-	printf("[LABEL] ApplySettings EXIT SAFE this=%p name='%s' align=%d text='%s'\n",
-		this,
-		GetName() ? GetName() : "<null>",
-		align,
-		labelText ? labelText : "<null>");
 }
 
 //-----------------------------------------------------------------------------

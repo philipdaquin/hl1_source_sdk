@@ -317,7 +317,8 @@ bool ScrollBarSlider::IsSliderVisible( void )
 //-----------------------------------------------------------------------------
 void ScrollBarSlider::ApplySchemeSettings(IScheme *pScheme)
 {
-	/*
+	BaseClass::ApplySchemeSettings(pScheme);
+
 	SetFgColor(GetSchemeColor("ScrollBarSlider.FgColor", pScheme));
 	SetBgColor(GetSchemeColor("ScrollBarSlider.BgColor", pScheme));
 
@@ -331,16 +332,6 @@ void ScrollBarSlider::ApplySchemeSettings(IScheme *pScheme)
 	{
 		_ScrollBarSliderBorder = pScheme->GetBorder("ButtonBorder");
 	}
-	*/
-
-	BaseClass::ApplySchemeSettings(pScheme);
-
-	// Keep the SDK control functional, but avoid scheme vtable calls during WASM bring-up.
-	SetFgColor( Color( 255, 255, 255, 255 ) );
-	SetBgColor( Color( 0, 0, 0, 0 ) );
-	_ScrollBarSliderBorder = NULL;
-
-	(void)pScheme;
 }
 
 //-----------------------------------------------------------------------------
@@ -349,14 +340,12 @@ void ScrollBarSlider::ApplySchemeSettings(IScheme *pScheme)
 void ScrollBarSlider::ApplySettings( KeyValues *pInResourceData )
 {
 	BaseClass::ApplySettings( pInResourceData );
-	/*
+
 	const char *pButtonBorderName = pInResourceData->GetString( "ButtonBorder", NULL );
 	if ( pButtonBorderName )
 	{
 		_ScrollBarSliderBorder = vgui2::scheme()->GetIScheme( GetScheme() )->GetBorder( pButtonBorderName );
 	}
-	*/
-	(void)pInResourceData;
 }
 
 //-----------------------------------------------------------------------------

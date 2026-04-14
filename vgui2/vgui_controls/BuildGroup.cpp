@@ -1409,6 +1409,26 @@ Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 		newPanel->SetPos(x, y);
 
 		newPanel->SetName(controlKeys->GetName()); // name before applysettings :)
+#ifdef __EMSCRIPTEN__
+		{
+			unsigned char *rawPanel = reinterpret_cast<unsigned char *>(newPanel);
+			void *fontOverridePtr = rawPanel ? *reinterpret_cast<void **>(rawPanel + 368) : NULL;
+			unsigned char *fontBytes = rawPanel ? rawPanel + 368 : NULL;
+			printf("[BUILDGROUP] NewControl pre-ApplySettings field='%s' class='%s' panel=%p _fontOverrideName=%p raw368=%02x %02x %02x %02x %02x %02x %02x %02x\n",
+				controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+				controlKeys->GetString("ControlName", "<none>"),
+				(void *)newPanel,
+				fontOverridePtr,
+				fontBytes ? fontBytes[0] : 0,
+				fontBytes ? fontBytes[1] : 0,
+				fontBytes ? fontBytes[2] : 0,
+				fontBytes ? fontBytes[3] : 0,
+				fontBytes ? fontBytes[4] : 0,
+				fontBytes ? fontBytes[5] : 0,
+				fontBytes ? fontBytes[6] : 0,
+				fontBytes ? fontBytes[7] : 0);
+		}
+#endif
 	#ifdef __EMSCRIPTEN__
 		printf( "[BUILDGROUP] NewControl before ApplySettings field='%s' class='%s' panel=%p\n",
 			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
@@ -1421,13 +1441,34 @@ Panel *BuildGroup::NewControl( KeyValues *controlKeys, int x, int y)
 			controlKeys->GetString("ControlName", "<none>"), (void *)newPanel );
 	#endif
 
+		int xpos = 0, ypos = 0, wide = 0, tall = 0;
+		newPanel->GetBounds(xpos, ypos, wide, tall);
+		printf("[VGUI_RES] Created: %s \"%s\" at xpos=%d ypos=%d wide=%d tall=%d visible=%d enabled=%d parent=\"%s\" parentPtr=%p resource=\"%s\"\n",
+			controlKeys->GetString("ControlName", "<none>"),
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			xpos, ypos, wide, tall,
+			newPanel->IsVisible() ? 1 : 0,
+			newPanel->IsEnabled() ? 1 : 0,
+			(m_pParentPanel && m_pParentPanel->GetName()) ? m_pParentPanel->GetName() : "<null>",
+			(void *)m_pParentPanel,
+			m_pResourceName ? m_pResourceName : "<null>");
+
 		newPanel->AddActionSignalTarget(m_pParentPanel);
 		newPanel->SetBuildModeEditable(true);
 		newPanel->SetBuildModeDeletable(true);	
 		
 		// make sure it gets freed
 		newPanel->SetAutoDelete(true);
-	}	
+	}
+	else
+	{
+		printf("[VGUI_RES] MISSING FACTORY: %s in %s - SKIPPED field=\"%s\" parent=\"%s\" parentPtr=%p\n",
+			controlKeys->GetString("ControlName", "<none>"),
+			m_pResourceName ? m_pResourceName : "<null>",
+			controlKeys->GetName() ? controlKeys->GetName() : "<null>",
+			(m_pParentPanel && m_pParentPanel->GetName()) ? m_pParentPanel->GetName() : "<null>",
+			(void *)m_pParentPanel);
+	}
 
 	return newPanel;
 }

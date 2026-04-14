@@ -42,14 +42,8 @@ public:
 	{
 		BaseClass::ApplySchemeSettings( pScheme );
 
-		/*
 		SetFgColor( pScheme->GetColor( "Menu.SeparatorColor", Color( 142, 142, 142, 255 ) ) );
 		SetBgColor( pScheme->GetColor( "Menu.BgColor", Color( 0, 0, 0, 255 ) ) );
-		*/
-
-		(void)pScheme;
-		SetFgColor( Color( 142, 142, 142, 255 ) );
-		SetBgColor( Color( 0, 0, 0, 255 ) );
 	}
 };
 
@@ -1141,7 +1135,6 @@ void Menu::MakeItemsVisibleInScrollRange( int maxVisibleItems, int nNumPixelsAva
 //-----------------------------------------------------------------------------
 void Menu::LayoutMenuBorder()
 {
-	/*
 	IBorder *menuBorder;
 	IScheme *pScheme = scheme()->GetIScheme( GetScheme() );
 
@@ -1151,10 +1144,6 @@ void Menu::LayoutMenuBorder()
 	{
 		SetBorder(menuBorder);
 	}
-	*/
-
-	// Avoid scheme vtable calls during WASM bring-up.
-	SetBorder(NULL);
 }
 
 //-----------------------------------------------------------------------------
@@ -1883,19 +1872,12 @@ void Menu::SetVisible(bool state)
 //-----------------------------------------------------------------------------
 void Menu::ApplySchemeSettings(IScheme *pScheme)
 {
-	/*
+	BaseClass::ApplySchemeSettings(pScheme);
+	
 	SetFgColor(GetSchemeColor("Menu.TextColor", pScheme));
 	SetBgColor(GetSchemeColor("Menu.BgColor", pScheme));
 
 	_borderDark = pScheme->GetColor("BorderDark", Color(255, 255, 255, 0));
-	*/
-
-	BaseClass::ApplySchemeSettings(pScheme);
-	
-	SetFgColor(GetSchemeColor("Menu.TextColor", pScheme));
-	SetBgColor(Color(0, 0, 0, 255));
-
-	_borderDark = Color(255, 255, 255, 0);
 
 	FOR_EACH_LL( m_MenuItems, i )
 	{

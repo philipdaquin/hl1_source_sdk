@@ -181,7 +181,7 @@ public:
 
 		if (bNeedRecompile)
 		{
-			Msg("LoadSchemeFromFile: '%s' has changed, will be recompiled.\n", fileName);
+			// Msg("LoadSchemeFromFile: '%s' has changed, will be recompiled.\n", fileName);
 
 			// Load original file
 			KeyValuesAD orig(new KeyValues("Scheme"));
@@ -306,4 +306,3 @@ const char *GetControlsModuleName()
 }
 
 } // namespace vgui2
-

@@ -47,6 +47,10 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include <tier0/memdbgon.h>
 
+#ifndef Con_Reportf
+#define Con_Reportf( ... ) do { printf( __VA_ARGS__ ); fflush( stdout ); } while ( 0 )
+#endif
+
 using namespace vgui2;
 
 #define TRIPLE_PRESS_MSEC	300
@@ -644,12 +648,8 @@ Panel::Panel()
 //-----------------------------------------------------------------------------
 Panel::Panel(Panel *parent)
 {
-	printf("[PANELDBG] Panel::Panel(parent=%p) ENTRY this=%p\n", parent, this);
 	Init(0, 0, 64, 24);
-	printf("[PANELDBG] Panel::Panel(parent=%p) AFTER Init this=%p vpanel=%u\n",
-		parent, this, (unsigned int)_vpanel);
 	SetParent(parent);
-	printf("[PANELDBG] Panel::Panel(parent=%p) EXIT this=%p\n", parent, this);
 }
 
 //-----------------------------------------------------------------------------
@@ -657,21 +657,10 @@ Panel::Panel(Panel *parent)
 //-----------------------------------------------------------------------------
 Panel::Panel(Panel *parent, const char *panelName)
 {
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) ENTRY this=%p\n",
-		parent, panelName ? panelName : "<null>", this);
-
 	Init(0, 0, 64, 24);
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) AFTER Init this=%p vpanel=%u\n",
-		parent, panelName ? panelName : "<null>", this, (unsigned int)_vpanel);
 	SetName(panelName);
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) AFTER SetName this=%p\n",
-		parent, panelName ? panelName : "<null>", this);
 	SetParent(parent);
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) AFTER SetParent this=%p\n",
-		parent, panelName ? panelName : "<null>", this);
 	SetBuildModeEditable(true);
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s) EXIT this=%p\n",
-		parent, panelName ? panelName : "<null>", this);
 }
 
 //-----------------------------------------------------------------------------
@@ -679,22 +668,11 @@ Panel::Panel(Panel *parent, const char *panelName)
 //-----------------------------------------------------------------------------
 Panel::Panel( Panel *parent, const char *panelName, HScheme scheme )
 {
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) ENTRY this=%p\n",
-		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
-
 	Init(0, 0, 64, 24);
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) AFTER Init this=%p vpanel=%u\n",
-		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this, (unsigned int)_vpanel);
 	SetName(panelName);
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) AFTER SetName this=%p\n",
-		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
 	SetParent(parent);
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) AFTER SetParent this=%p\n",
-		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
 	SetBuildModeEditable(true);
 	SetScheme( scheme );
-	printf("[PANELDBG] Panel::Panel(parent=%p, name=%s, scheme=%lu) EXIT this=%p\n",
-		parent, panelName ? panelName : "<null>", (unsigned long)scheme, this);
 }
 
 //-----------------------------------------------------------------------------
@@ -702,8 +680,6 @@ Panel::Panel( Panel *parent, const char *panelName, HScheme scheme )
 //-----------------------------------------------------------------------------
 void Panel::Init( int x, int y, int wide, int tall )
 {
-	printf("[PANELDBG] Panel::Init ENTRY this=%p ivgui=%p ipanel=%p\n",
-		this, ivgui(), ipanel());
 	_panelName = NULL;
 	_tooltipText = NULL;
 	_pinToSibling = NULL;
@@ -713,11 +689,7 @@ void Panel::Init( int x, int y, int wide, int tall )
 
 	// get ourselves an internal panel
 	_vpanel = ivgui()->AllocPanel();
-	printf("[PANELDBG] Panel::Init after AllocPanel this=%p vpanel=%u\n",
-		this, (unsigned int)_vpanel);
 	ipanel()->Init(_vpanel, this);
-	printf("[PANELDBG] Panel::Init after ipanel()->Init this=%p vpanel=%u\n",
-		this, (unsigned int)_vpanel);
 
 	SetPos(x, y);
 	SetSize(wide, tall);
@@ -759,8 +731,6 @@ void Panel::Init( int x, int y, int wide, int tall )
 	m_nBgTextureId2 = -1;
 	m_nBgTextureId3 = -1;
 	m_nBgTextureId4 = -1;
-	printf("[PANELDBG] Panel::Init EXIT this=%p vpanel=%u\n",
-		this, (unsigned int)_vpanel);
 #if defined( VGUI_USEDRAGDROP )
 	m_pDragDrop = new DragDrop_t;
 
@@ -802,9 +772,6 @@ void Panel::Init( int x, int y, int wide, int tall )
 //-----------------------------------------------------------------------------
 Panel::~Panel()
 {
-	printf("[PANELDBG] Panel::~Panel ENTRY this=%p vpanel=%u parent=%u childCount=%d\n",
-		this, (unsigned int)_vpanel, (unsigned int)GetVParent(),
-		_vpanel ? ipanel()->GetChildCount(GetVPanel()) : -1);
 	// @note Tom Bui: only cleanup if we've created it
 	if ( !m_bToolTipOverridden )
 	{
@@ -859,7 +826,6 @@ Panel::~Panel()
 	delete [] _pinToSibling;
 
 	_vpanel = NULL;
-	printf("[PANELDBG] Panel::~Panel EXIT this=%p\n", this);
 #if defined( VGUI_USEDRAGDROP )
 	delete m_pDragDrop;
 #endif // VGUI_USEDRAGDROP
@@ -1487,8 +1453,6 @@ bool Panel::IsBottomAligned()
 //-----------------------------------------------------------------------------
 void Panel::SetParent(Panel *newParent)
 {
-	printf("[PANELDBG] Panel::SetParent(Panel*) this=%p newParent=%p currentVParent=%u\n",
-		this, newParent, (unsigned int)GetVParent());
 	// Assert that the parent is from the same module as the child
 	// FIXME: !!! work out how to handle this properly!
 	//	Assert(!newParent || !strcmp(newParent->GetModuleName(), GetControlsModuleName()));
@@ -1501,8 +1465,6 @@ void Panel::SetParent(Panel *newParent)
 	{
 		SetParent((VPANEL)NULL);
 	}
-	printf("[PANELDBG] Panel::SetParent(Panel*) EXIT this=%p newVParent=%u\n",
-		this, (unsigned int)GetVParent());
 }
 
 //-----------------------------------------------------------------------------
@@ -1510,8 +1472,6 @@ void Panel::SetParent(Panel *newParent)
 //-----------------------------------------------------------------------------
 void Panel::SetParent(VPANEL newParent)
 {
-	printf("[PANELDBG] Panel::SetParent(VPANEL) ENTRY this=%p vpanel=%u newParent=%u oldParent=%u\n",
-		this, (unsigned int)GetVPanel(), (unsigned int)newParent, (unsigned int)GetVParent());
 	if (newParent)
 	{
 		ipanel()->SetParent(GetVPanel(), newParent);
@@ -1538,8 +1498,6 @@ void Panel::SetParent(VPANEL newParent)
 	}
 
 	UpdateSiblingPin();
-	printf("[PANELDBG] Panel::SetParent(VPANEL) EXIT this=%p vpanel=%u finalParent=%u\n",
-		this, (unsigned int)GetVPanel(), (unsigned int)GetVParent());
 }
 
 //-----------------------------------------------------------------------------
@@ -1547,8 +1505,6 @@ void Panel::SetParent(VPANEL newParent)
 //-----------------------------------------------------------------------------
 void Panel::OnChildAdded(VPANEL child)
 {
-	printf("[PANELDBG] Panel::OnChildAdded this=%p child=%u inPerformLayout=%d\n",
-		this, (unsigned int)child, _flags.IsFlagSet( IN_PERFORM_LAYOUT ) ? 1 : 0);
 	Assert( !_flags.IsFlagSet( IN_PERFORM_LAYOUT ) );
 }
 
@@ -4146,7 +4102,7 @@ void Panel::UpdateSiblingPin( void )
 //-----------------------------------------------------------------------------
 void Panel::ApplySchemeSettings(IScheme *pScheme)
 {
-	/*
+	// get colors
 	SetFgColor(GetSchemeColor("Panel.FgColor", pScheme));
 	SetBgColor(GetSchemeColor("Panel.BgColor", pScheme));
 
@@ -4155,18 +4111,6 @@ void Panel::ApplySchemeSettings(IScheme *pScheme)
 	m_clrDropFrame = pScheme->GetColor("DragDrop.DropFrame", Color(150, 255, 150, 255));
 
 	m_infoFont = pScheme->GetFont( "DefaultVerySmall" );
-#endif
-	*/
-
-	// get colors
-	(void)pScheme;
-	SetFgColor(Color(255, 255, 255, 255));
-	SetBgColor(Color(0, 0, 0, 0));
-
-#if defined( VGUI_USEDRAGDROP )
-	m_clrDragFrame = Color(255, 255, 255, 192);
-	m_clrDropFrame = Color(150, 255, 150, 255);
-	m_infoFont = INVALID_FONT;
 #endif
 	// mark us as no longer needing scheme settings applied
 	_flags.ClearFlag( NEEDS_SCHEME_UPDATE );
@@ -4190,7 +4134,6 @@ void Panel::PerformApplySchemeSettings()
 
 	if ( _flags.IsFlagSet( NEEDS_SCHEME_UPDATE ) )
 	{
-		/*
 		VPROF( "ApplySchemeSettings" );
 		IScheme *pScheme = scheme()->GetIScheme( GetScheme() );
 		AssertOnce( pScheme );
@@ -4203,14 +4146,6 @@ void Panel::PerformApplySchemeSettings()
 
 			UpdateSiblingPin();
 		}
-		*/
-
-		// WASM bring-up: skip scheme-vtable dispatch entirely for now.
-		// This keeps controls created from .res files alive and layoutable
-		// without tripping indirect-call signature mismatches.
-		ApplyOverridableColors();
-		UpdateSiblingPin();
-		_flags.ClearFlag( NEEDS_SCHEME_UPDATE );
 	}
 }
 
@@ -5099,12 +5034,24 @@ void Panel::SetOverridableColor( Color *pColor, const Color &newColor )
 //-----------------------------------------------------------------------------
 Color Panel::GetSchemeColor(const char *keyName, IScheme *pScheme)
 {
-	/*
+	if( pScheme )
+	{
+		void **vtable = *(void ***)pScheme;
+		void *slot5 = vtable ? vtable[5] : NULL;
+		Con_Reportf( "VGUI2: Panel::GetSchemeColor this=%p key='%s' scheme=%p vtable=%p slot5=%p\n",
+			this,
+			keyName ? keyName : "<null>",
+			pScheme,
+			vtable,
+			slot5 );
+	}
+	else
+	{
+		Con_Reportf( "VGUI2: Panel::GetSchemeColor this=%p key='%s' scheme=<null>\n",
+			this,
+			keyName ? keyName : "<null>" );
+	}
 	return pScheme->GetColor(keyName, Color(255, 255, 255, 255));
-	*/
-	(void)keyName;
-	(void)pScheme;
-	return Color(255, 255, 255, 255);
 }
 
 //-----------------------------------------------------------------------------
@@ -5112,12 +5059,26 @@ Color Panel::GetSchemeColor(const char *keyName, IScheme *pScheme)
 //-----------------------------------------------------------------------------
 Color Panel::GetSchemeColor(const char *keyName, Color defaultColor, IScheme *pScheme)
 {
-	/*
+	if( pScheme )
+	{
+		void **vtable = *(void ***)pScheme;
+		void *slot5 = vtable ? vtable[5] : NULL;
+		Con_Reportf( "VGUI2: Panel::GetSchemeColor this=%p key='%s' scheme=%p vtable=%p slot5=%p default=(%d,%d,%d,%d)\n",
+			this,
+			keyName ? keyName : "<null>",
+			pScheme,
+			vtable,
+			slot5,
+			defaultColor.r(), defaultColor.g(), defaultColor.b(), defaultColor.a() );
+	}
+	else
+	{
+		Con_Reportf( "VGUI2: Panel::GetSchemeColor this=%p key='%s' scheme=<null> default=(%d,%d,%d,%d)\n",
+			this,
+			keyName ? keyName : "<null>",
+			defaultColor.r(), defaultColor.g(), defaultColor.b(), defaultColor.a() );
+	}
 	return pScheme->GetColor(keyName, defaultColor);
-	*/
-	(void)keyName;
-	(void)pScheme;
-	return defaultColor;
 }
 
 //-----------------------------------------------------------------------------

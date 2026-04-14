@@ -17,6 +17,7 @@
 #include <vstdlib/IKeyValuesSystem.h>
 
 #include "tier1/interface.h"
+#include "Color.h"
 #include "vgui/MouseCode.h"
 #include "vgui/KeyCode.h"
 #include "tier2/tier2.h"

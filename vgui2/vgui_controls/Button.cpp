@@ -455,7 +455,6 @@ void Button::ApplySchemeSettings(IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
 
-	/*
 	// get the borders we need
 	_defaultBorder = pScheme->GetBorder("ButtonBorder");
 	_depressedBorder = pScheme->GetBorder("ButtonDepressedBorder");
@@ -475,30 +474,6 @@ void Button::ApplySchemeSettings(IScheme *pScheme)
 	_keyboardFocusColor = GetSchemeColor("Button.FocusBorderColor", Color(0,0,0,255), pScheme);
 
 	_blinkFgColor = GetSchemeColor("Button.BlinkColor", Color(255, 155, 0, 255), pScheme);
-	*/
-
-	// Avoid scheme vtable calls during WASM bring-up.
-	// Keep the button on fixed colors/borders so the menu can render
-	// without touching IScheme::GetBorder/GetColor here.
-	(void)pScheme;
-	_defaultBorder = NULL;
-	_depressedBorder = NULL;
-	_keyFocusBorder = NULL;
-
-	_defaultFgColor = Color(255, 255, 255, 255);
-	_defaultBgColor = Color(0, 0, 0, 255);
-
-	_armedFgColor = _defaultFgColor;
-	_armedBgColor = _defaultBgColor;
-
-	_selectedFgColor = _defaultFgColor;
-	_selectedBgColor = _defaultBgColor;
-
-	_depressedFgColor = _defaultFgColor;
-	_depressedBgColor = _defaultBgColor;
-	_keyboardFocusColor = Color(0, 0, 0, 255);
-
-	_blinkFgColor = Color(255, 155, 0, 255);
 	InvalidateLayout();
 }
 

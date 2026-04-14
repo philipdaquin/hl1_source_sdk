@@ -28,6 +28,13 @@ using namespace vgui2;
 
 #define HL1_USER_AGENT "GoldSrc"
 
+static Panel *CreateHTMLControl()
+{
+	return new HTML(NULL, NULL, false, false);
+}
+
+DECLARE_BUILD_FACTORY_CUSTOM(HTML, CreateHTMLControl);
+
 //-----------------------------------------------------------------------------
 // Purpose: A simple passthrough panel to render the border onto the HTML widget
 //-----------------------------------------------------------------------------
@@ -114,29 +121,28 @@ private:
 //-----------------------------------------------------------------------------
 HTML::HTML(Panel *parent, const char *name, bool allowJavaScript, bool bPopupWindow)
     : Panel(parent, name)
-#ifndef NO_STEAM
-    , m_NeedsPaint(this, &HTML::BrowserNeedsPaint)
-    , m_StartRequest(this, &HTML::BrowserStartRequest)
-    , m_URLChanged(this, &HTML::BrowserURLChanged)
-    , m_FinishedRequest(this, &HTML::BrowserFinishedRequest)
-    , m_LinkInNewTab(this, &HTML::BrowserOpenNewTab)
-    , m_ChangeTitle(this, &HTML::BrowserSetHTMLTitle)
-    , m_NewWindow(this, &HTML::BrowserPopupHTMLWindow)
-    , m_FileLoadDialog(this, &HTML::BrowserFileLoadDialog)
-    , m_SearchResults(this, &HTML::BrowserSearchResults)
-    , m_CloseBrowser(this, &HTML::BrowserClose)
-    , m_HorizScroll(this, &HTML::BrowserHorizontalScrollBarSizeResponse)
-    , m_VertScroll(this, &HTML::BrowserVerticalScrollBarSizeResponse)
-    , m_LinkAtPosResp(this, &HTML::BrowserLinkAtPositionResponse)
-    , m_JSAlert(this, &HTML::BrowserJSAlert)
-    , m_JSConfirm(this, &HTML::BrowserJSConfirm)
-    , m_CanGoBackForward(this, &HTML::BrowserCanGoBackandForward)
-    , m_SetCursor(this, &HTML::BrowserSetCursor)
-    , m_StatusText(this, &HTML::BrowserStatusText)
-    , m_ShowTooltip(this, &HTML::BrowserShowToolTip)
-    , m_UpdateTooltip(this, &HTML::BrowserUpdateToolTip)
-    , m_HideTooltip(this, &HTML::BrowserHideToolTip)
-#endif
+//#ifndef NO_STEAM
+//    // , m_StartRequest(this, &HTML::BrowserStartRequest)
+//    , m_URLChanged(this, &HTML::BrowserURLChanged)
+//    , m_FinishedRequest(this, &HTML::BrowserFinishedRequest)
+//    , m_LinkInNewTab(this, &HTML::BrowserOpenNewTab)
+//    , m_ChangeTitle(this, &HTML::BrowserSetHTMLTitle)
+//    , m_NewWindow(this, &HTML::BrowserPopupHTMLWindow)
+//    , m_FileLoadDialog(this, &HTML::BrowserFileLoadDialog)
+//    , m_SearchResults(this, &HTML::BrowserSearchResults)
+//    , m_CloseBrowser(this, &HTML::BrowserClose)
+//    , m_HorizScroll(this, &HTML::BrowserHorizontalScrollBarSizeResponse)
+//    , m_VertScroll(this, &HTML::BrowserVerticalScrollBarSizeResponse)
+//    , m_LinkAtPosResp(this, &HTML::BrowserLinkAtPositionResponse)
+//    , m_JSAlert(this, &HTML::BrowserJSAlert)
+//    , m_JSConfirm(this, &HTML::BrowserJSConfirm)
+//    , m_CanGoBackForward(this, &HTML::BrowserCanGoBackandForward)
+//    , m_SetCursor(this, &HTML::BrowserSetCursor)
+//    , m_StatusText(this, &HTML::BrowserStatusText)
+//    , m_ShowTooltip(this, &HTML::BrowserShowToolTip)
+//    , m_UpdateTooltip(this, &HTML::BrowserUpdateToolTip)
+//    , m_HideTooltip(this, &HTML::BrowserHideToolTip)
+//#endif
 {
 	m_iHTMLTextureID = 0;
 	m_bCanGoBack = false;
@@ -152,19 +158,19 @@ HTML::HTML(Panel *parent, const char *name, bool allowJavaScript, bool bPopupWin
 
 	m_unBrowserHandle = INVALID_HTMLBROWSER;
 
-#ifndef NO_STEAM
-	m_SteamAPIContext.Init();
-	if ( m_SteamAPIContext.SteamHTMLSurface() )
-	{
-		m_SteamAPIContext.SteamHTMLSurface()->Init();
-		SteamAPICall_t hSteamAPICall = m_SteamAPIContext.SteamHTMLSurface()->CreateBrowser( HL1_USER_AGENT, NULL );
-		m_SteamCallResultBrowserReady.Set( hSteamAPICall, this, &HTML::OnBrowserReady );
-	}
-	else
-	{
-		Warning("Unable to access SteamHTMLSurface\n");
-	}
-#endif
+//#ifndef NO_STEAM
+//	m_SteamAPIContext.Init();
+//	if ( m_SteamAPIContext.SteamHTMLSurface() )
+//	{
+//		m_SteamAPIContext.SteamHTMLSurface()->Init();
+//		SteamAPICall_t hSteamAPICall = m_SteamAPIContext.SteamHTMLSurface()->CreateBrowser( HL1_USER_AGENT, NULL );
+//		m_SteamCallResultBrowserReady.Set( hSteamAPICall, this, &HTML::OnBrowserReady );
+//	}
+//	else
+//	{
+//		Warning("Unable to access SteamHTMLSurface\n");
+//	}
+//#endif
 
 	m_iScrollBorderX=m_iScrollBorderY=0;
 	m_bScrollBarEnabled = true;
@@ -1229,53 +1235,7 @@ void HTML::CHTMLFindBar::OnCommand( const char *pchCmd )
 
 }
 
-#ifndef NO_STEAM
-//-----------------------------------------------------------------------------
-// Purpose: we have a new texture to update
-//-----------------------------------------------------------------------------
-void HTML::BrowserNeedsPaint( HTML_NeedsPaint_t *pCallback )
-{
-	int tw = 0, tt = 0;
-	if ( m_iHTMLTextureID != 0 )
-	{
-		tw = m_allocedTextureWidth;
-		tt = m_allocedTextureHeight;
-	}
-
-	if ( m_iHTMLTextureID != 0 && ( ( _vbar->IsVisible() && pCallback->unScrollY > 0 && abs( (int)pCallback->unScrollY - m_scrollVertical.m_nScroll) > 5 ) || ( _hbar->IsVisible() && pCallback->unScrollX > 0 && abs( (int)pCallback->unScrollX - m_scrollHorizontal.m_nScroll ) > 5 ) ) )
-	{
-		m_bNeedsFullTextureUpload = true;
-		return;
-	}
-
-	// update the vgui texture
-	if ( m_bNeedsFullTextureUpload || m_iHTMLTextureID == 0  || tw != (int)pCallback->unWide || tt != (int)pCallback->unTall )
-	{
-		m_bNeedsFullTextureUpload = false;
-		if ( m_iHTMLTextureID != 0 )
-			surface()->DeleteTextureByID( m_iHTMLTextureID );
-
-		// if the dimensions changed we also need to re-create the texture ID to support the overlay properly (it won't resize a texture on the fly, this is the only control that needs
-		//   to so lets have a tiny bit more code here to support that)
-		m_iHTMLTextureID = surface()->CreateNewTextureID( true );
-		surface()->DrawSetTextureBGRA( m_iHTMLTextureID, (const unsigned char *)pCallback->pBGRA, pCallback->unWide, pCallback->unTall );// BR FIXME - this call seems to shift by some number of pixels?
-		m_allocedTextureWidth = pCallback->unWide;
-		m_allocedTextureHeight = pCallback->unTall;
-	}
-	else if ( (int)pCallback->unUpdateWide > 0 && (int)pCallback->unUpdateTall > 0 )
-	{
-		// same size texture, just bits changing in it, lets twiddle
-		surface()->DrawUpdateRegionTextureBGRA( m_iHTMLTextureID, pCallback->unUpdateX, pCallback->unUpdateY, (const unsigned char *)pCallback->pBGRA, pCallback->unUpdateWide, pCallback->unUpdateTall );
-	}
-	else
-	{
-		surface()->DrawSetTextureBGRA(m_iHTMLTextureID, (const unsigned char *)pCallback->pBGRA, pCallback->unWide, pCallback->unTall);
-	}
-
-	// need a paint next time
-	Repaint();
-}
-#endif
+// Steam callback handling disabled in this build.
 
 //-----------------------------------------------------------------------------
 // Purpose: browser wants to start loading this url, do we let it?
@@ -1332,19 +1292,8 @@ bool HTML::OnStartRequest( const char *url, const char *target, const char *pchP
 	return true;
 }
 
-#ifndef NO_STEAM
-//-----------------------------------------------------------------------------
-// Purpose: callback from cef thread, load a url please
-//-----------------------------------------------------------------------------
-void HTML::BrowserStartRequest( HTML_StartRequest_t *pCmd )
-{
-	bool bRes = OnStartRequest( pCmd->pchURL, pCmd->pchTarget, pCmd->pchPostData, pCmd->bIsRedirect );
-
-	if (m_SteamAPIContext.SteamHTMLSurface())
-		m_SteamAPIContext.SteamHTMLSurface()->AllowStartRequest( m_unBrowserHandle, bRes );
-}
-
-
+//#ifndef NO_STEAM
+#if 0
 //-----------------------------------------------------------------------------
 // Purpose: browser went to a new url
 //-----------------------------------------------------------------------------
@@ -1759,6 +1708,7 @@ void HTML::BrowserJSConfirm( HTML_JSConfirm_t *pCmd )
 	pDlg->DoModal();
 }
 #endif
+//#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: got an answer from the dialog, tell cef
@@ -1769,8 +1719,9 @@ void HTML::DismissJSDialog( int bResult )
 		m_SteamAPIContext.SteamHTMLSurface()->JSDialogResponse( m_unBrowserHandle, bResult );
 };
 
-#ifndef NO_STEAM
-//-----------------------------------------------------------------------------
+//#ifndef NO_STEAM
+#if 0
+//----------------------------------------------------------------------------- 
 // Purpose: browser telling us the state of back and forward buttons
 //-----------------------------------------------------------------------------
 void HTML::BrowserCanGoBackandForward( HTML_CanGoBackAndForward_t *pCmd )
@@ -1779,6 +1730,7 @@ void HTML::BrowserCanGoBackandForward( HTML_CanGoBackAndForward_t *pCmd )
 	m_bCanGoForward = pCmd->bCanGoForward;
 }
 #endif
+//#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: ask the browser for what is at this x,y
@@ -1798,5 +1750,3 @@ void HTML::UpdateSizeAndScrollBars()
 	BrowserResize();
 	InvalidateLayout();
 }
-
-
