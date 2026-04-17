@@ -51,30 +51,6 @@ using namespace vgui2;
 
 #define TRIPLE_PRESS_MSEC	300
 
-static int VGUI2TracePanelDepth( Panel *panel )
-{
-	int depth = 0;
-	for ( Panel *parent = panel ? panel->GetParent() : NULL; parent; parent = parent->GetParent() )
-	{
-		++depth;
-	}
-	return depth;
-}
-
-static void VGUI2TracePanelIndent( int depth )
-{
-	while ( depth-- > 0 )
-	{
-		printf( "  " );
-	}
-}
-
-static const char *VGUI2TracePanelName( Panel *panel )
-{
-	const char *name = panel ? panel->GetName() : NULL;
-	return ( name && name[0] ) ? name : "<unnamed>";
-}
-
 const char *g_PinCornerStrings [] =
 {
 	"PIN_TOPLEFT",
@@ -1165,35 +1141,13 @@ void Panel::OnChildSettingsApplied( KeyValues *pInResourceData, Panel *pChild  )
 //-----------------------------------------------------------------------------
 void Panel::PaintTraverse( bool repaint, bool allowForce )
 {
-	int traceDepth = VGUI2TracePanelDepth( this );
-	int posX = 0, posY = 0;
-	GetPos( posX, posY );
-	VGUI2TracePanelIndent( traceDepth );
-	// PROVEN
-	// printf( "[VGUI2-CLIENT] Panel::PaintTraverse ENTER this=%p name='%s' repaint=%d allowForce=%d visible=%d enabled=%d children=%d pos=(%d,%d) size=(%d,%d)\n",
-	// 	this,
-	// 	VGUI2TracePanelName( this ),
-	// 	repaint ? 1 : 0,
-	// 	allowForce ? 1 : 0,
-	// 	IsVisible() ? 1 : 0,
-	// 	IsEnabled() ? 1 : 0,
-	// 	GetChildCount(),
-	// 	posX, posY,
-	// 	GetWide(), GetTall() );
-
 	if ( m_bWorldPositionCurrentFrame )
 	{
-		VGUI2TracePanelIndent( traceDepth );
-		// printf( "[VGUI2-CLIENT] Panel::PaintTraverse SolveTraverse this=%p name='%s'\n",
-		// 	this, VGUI2TracePanelName( this ) );
 		surface()->SolveTraverse( GetVPanel() );
 	}
 
 	if ( !IsVisible() )
 	{
-		VGUI2TracePanelIndent( traceDepth );
-		// printf( "[VGUI2-CLIENT] Panel::PaintTraverse EXIT this=%p name='%s' reason=not-visible\n",
-		// 	this, VGUI2TracePanelName( this ) );
 		return;
 	}
 
@@ -1234,15 +1188,9 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 
 	int clipRect[4];
 	ipanel()->GetClipRect( vpanel, clipRect[0], clipRect[1], clipRect[2], clipRect[3] );
-	VGUI2TracePanelIndent( traceDepth );
-	// printf( "[VGUI2-CLIENT] Panel::PaintTraverse CLIP this=%p name='%s' clip=(%d,%d %dx%d)\n",
-	// 	this, VGUI2TracePanelName( this ), clipRect[0], clipRect[1], clipRect[2], clipRect[3] );
 	if ( ( clipRect[2] <= clipRect[0] ) || ( clipRect[3] <= clipRect[1] ) )
 	{
 		repaint = false;
-		VGUI2TracePanelIndent( traceDepth );
-		// printf( "[VGUI2-CLIENT] Panel::PaintTraverse repaint disabled by empty clip this=%p name='%s'\n",
-		// 	this, VGUI2TracePanelName( this ) );
 	}
 
 	// set global alpha
@@ -1257,9 +1205,6 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 	// draw the border first if requested to
 	if ( bBorderPaintFirst && repaint && _flags.IsFlagSet( PAINT_BORDER_ENABLED ) && ( _border != nullptr ) )
 	{
-		VGUI2TracePanelIndent( traceDepth );
-		// printf( "[VGUI2-CLIENT] Panel::PaintTraverse BORDER-FIRST this=%p name='%s'\n",
-		// 	this, VGUI2TracePanelName( this ) );
 		// Paint the border over the background with no inset
 		surface()->PushMakeCurrent( vpanel, false );
 		PaintBorder();
@@ -1271,9 +1216,6 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 		// draw the background with no inset
 		if ( _flags.IsFlagSet( PAINT_BACKGROUND_ENABLED ) )
 		{
-			VGUI2TracePanelIndent( traceDepth );
-			// printf( "[VGUI2-CLIENT] Panel::PaintTraverse PaintBackground this=%p name='%s'\n",
-			// 	this, VGUI2TracePanelName( this ) );
 			surface()->PushMakeCurrent( vpanel, false );
 			PaintBackground();
 			surface()->PopMakeCurrent( vpanel );
@@ -1282,9 +1224,6 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 		// draw the front of the panel with the inset
 		if ( _flags.IsFlagSet( PAINT_ENABLED ) )
 		{
-			VGUI2TracePanelIndent( traceDepth );
-			// printf( "[VGUI2-CLIENT] Panel::PaintTraverse Paint this=%p name='%s'\n",
-			// 	this, VGUI2TracePanelName( this ) );
 			surface()->PushMakeCurrent( vpanel, true );
 			Paint();
 			surface()->PopMakeCurrent( vpanel );
@@ -1293,39 +1232,16 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 
 	// traverse and paint all our children
 	int childCount = ipanel()->GetChildCount(vpanel);
-	VGUI2TracePanelIndent( traceDepth );
-	// printf( "[VGUI2-CLIENT] Panel::PaintTraverse CHILDREN this=%p name='%s' count=%d\n",
-	// 	this, VGUI2TracePanelName( this ), childCount );
 	for (int i = 0; i < childCount; i++)
 	{
 		VPANEL child = ipanel()->GetChild(vpanel, i);
 		bool bVisible = ipanel()->IsVisible( child );
-		const char *childName = ipanel()->GetName( child );
-		VGUI2TracePanelIndent( traceDepth );
-		// printf( "[VGUI2-CLIENT] Panel::PaintTraverse CHILD this=%p name='%s' idx=%d child=%d childName='%s' visible=%d shouldPaint=%d\n",
-		// 	this,
-		// 	VGUI2TracePanelName( this ),
-		// 	i,
-		// 	(int)child,
-		// 	childName ? childName : "<null>",
-		// 	bVisible ? 1 : 0,
-		// 	surface()->ShouldPaintChildPanel( child ) ? 1 : 0 );
 
 		if ( surface()->ShouldPaintChildPanel( child ) )
 		{
 			if ( bVisible )
 			{
-				VGUI2TracePanelIndent( traceDepth );
-				// printf( "[VGUI2-CLIENT] Panel::PaintTraverse FORWARD child=%d childName='%s' repaint=%d allowForce=%d\n",
-				// 	(int)child,
-				// 	childName ? childName : "<null>",
-				// 	repaint ? 1 : 0,
-				// 	allowForce ? 1 : 0 );
 				ipanel()->PaintTraverse( child, repaint, allowForce );
-				VGUI2TracePanelIndent( traceDepth );
-				// printf( "[VGUI2-CLIENT] Panel::PaintTraverse RETURN child=%d childName='%s'\n",
-				// 	(int)child,
-				// 	childName ? childName : "<null>" );
 			}
 		}
 		else
@@ -1336,15 +1252,7 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 			// keep traversing the tree, just don't allow anyone to paint after here
 			if ( bVisible )
 			{
-				VGUI2TracePanelIndent( traceDepth );
-				// printf( "[VGUI2-CLIENT] Panel::PaintTraverse FORWARD-INVALIDATED child=%d childName='%s'\n",
-				// 	(int)child,
-				// 	childName ? childName : "<null>" );
 				ipanel()->PaintTraverse( child, false, false );
-				VGUI2TracePanelIndent( traceDepth );
-				// printf( "[VGUI2-CLIENT] Panel::PaintTraverse RETURN-INVALIDATED child=%d childName='%s'\n",
-				// 	(int)child,
-				// 	childName ? childName : "<null>" );
 			}
 		}
 	}
@@ -1354,9 +1262,6 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 	{
 		if ( !bBorderPaintFirst && _flags.IsFlagSet( PAINT_BORDER_ENABLED ) && ( _border != nullptr ) )
 		{
-			VGUI2TracePanelIndent( traceDepth );
-			// printf( "[VGUI2-CLIENT] Panel::PaintTraverse PaintBorder last this=%p name='%s'\n",
-			// 	this, VGUI2TracePanelName( this ) );
 			// Paint the border over the background with no inset
 			surface()->PushMakeCurrent( vpanel, false );
 			PaintBorder();
@@ -1394,10 +1299,6 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 		}
 	}
 
-	VGUI2TracePanelIndent( traceDepth );
-	// printf( "[VGUI2-CLIENT] Panel::PaintTraverse EXIT this=%p name='%s'\n",
-	// 	this, VGUI2TracePanelName( this ) );
-
 	DrawSetAlphaMultiplier( oldAlphaMultiplier );
 
 	surface()->SwapBuffers( vpanel );
@@ -1417,10 +1318,6 @@ void Panel::PaintTraverse( bool repaint, bool allowForce )
 //-----------------------------------------------------------------------------
 void Panel::PaintBorder()
 {
-	int traceDepth = VGUI2TracePanelDepth( this );
-	VGUI2TracePanelIndent( traceDepth );
-	// printf( "[VGUI2-CLIENT] Panel::PaintBorder this=%p name='%s' border=%p\n",
-	// 	this, VGUI2TracePanelName( this ), _border );
 	_border->Paint(GetVPanel());
 }
 
@@ -1430,10 +1327,6 @@ void Panel::PaintBorder()
 //-----------------------------------------------------------------------------
 void Panel::PaintBackground()
 { 
-	int traceDepth = VGUI2TracePanelDepth( this );
-	VGUI2TracePanelIndent( traceDepth );
-	// printf( "[VGUI2-CLIENT] Panel::PaintBackground this=%p name='%s' bgType=%d\n",
-	// 	this, VGUI2TracePanelName( this ), m_nPaintBackgroundType );
 	int wide, tall;
 	GetSize( wide, tall );
 	if ( m_SkipChild.Get() && m_SkipChild->IsVisible() )
@@ -1493,10 +1386,6 @@ void Panel::PaintBackground()
 //-----------------------------------------------------------------------------
 void Panel::Paint()
 {
-	int traceDepth = VGUI2TracePanelDepth( this );
-	VGUI2TracePanelIndent( traceDepth );
-	// printf( "[VGUI2-CLIENT] Panel::Paint this=%p name='%s'\n",
-	// 	this, VGUI2TracePanelName( this ) );
 	// empty on purpose
 	// PaintBackground is painted and default behavior is for Paint to do nothing
 }
@@ -4210,13 +4099,8 @@ void Panel::UpdateSiblingPin( void )
 void Panel::ApplySchemeSettings(IScheme *pScheme)
 {
 	// get colors
-	Color fgColor = GetSchemeColor("Panel.FgColor", pScheme);
-	fgColor = GetSchemeColor("FgColor", fgColor, pScheme);
-	SetFgColor(fgColor);
-
-	Color bgColor = GetSchemeColor("Panel.BgColor", pScheme);
-	bgColor = GetSchemeColor("BgColor", bgColor, pScheme);
-	SetBgColor(bgColor);
+	SetFgColor(GetSchemeColor("Panel.FgColor", pScheme));
+	SetBgColor(GetSchemeColor("Panel.BgColor", pScheme));
 
 #if defined( VGUI_USEDRAGDROP )
 	m_clrDragFrame = pScheme->GetColor("DragDrop.DragFrame", Color(255, 255, 255, 192));
