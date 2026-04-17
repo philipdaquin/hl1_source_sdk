@@ -1068,7 +1068,9 @@ void Label::ApplySchemeSettings(IScheme *pScheme)
 
 	SetDisabledFgColor1(GetSchemeColor("Label.DisabledFgColor1", pScheme));
 	SetDisabledFgColor2(GetSchemeColor("Label.DisabledFgColor2", pScheme));
-	SetBgColor(GetSchemeColor("Label.BgColor", pScheme));
+	Color labelBgColor = GetSchemeColor("BgColor", GetBgColor(), pScheme);
+	labelBgColor = GetSchemeColor("LabelBgColor", labelBgColor, pScheme);
+	SetBgColor(GetSchemeColor("Label.BgColor", labelBgColor, pScheme));
 
 	switch (_textColorState)
 	{

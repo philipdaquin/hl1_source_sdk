@@ -233,6 +233,10 @@ void Image::DrawSetTexture(int id)
 //-----------------------------------------------------------------------------
 void Image::DrawTexturedRect(int x0,int y0,int x1,int y1)
 {
+	x0+=_pos[0];
+	y0+=_pos[1];
+	x1+=_pos[0];
+	y1+=_pos[1];
 	surface()->DrawTexturedRect(x0,y0,x1,y1);
 }
 
@@ -279,4 +283,3 @@ HTexture Image::GetID()
 {
 	return 0;
 }
-

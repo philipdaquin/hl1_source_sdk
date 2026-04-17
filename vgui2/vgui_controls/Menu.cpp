@@ -1875,7 +1875,9 @@ void Menu::ApplySchemeSettings(IScheme *pScheme)
 	BaseClass::ApplySchemeSettings(pScheme);
 	
 	SetFgColor(GetSchemeColor("Menu.TextColor", pScheme));
-	SetBgColor(GetSchemeColor("Menu.BgColor", pScheme));
+	Color menuBgColor = GetSchemeColor("BgColor", GetBgColor(), pScheme);
+	menuBgColor = GetSchemeColor("Menu/BgColor", menuBgColor, pScheme);
+	SetBgColor(GetSchemeColor("Menu.BgColor", menuBgColor, pScheme));
 
 	_borderDark = pScheme->GetColor("BorderDark", Color(255, 255, 255, 0));
 

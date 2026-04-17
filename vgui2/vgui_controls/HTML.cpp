@@ -121,28 +121,27 @@ private:
 //-----------------------------------------------------------------------------
 HTML::HTML(Panel *parent, const char *name, bool allowJavaScript, bool bPopupWindow)
     : Panel(parent, name)
-//#ifndef NO_STEAM
-//    // , m_StartRequest(this, &HTML::BrowserStartRequest)
-//    , m_URLChanged(this, &HTML::BrowserURLChanged)
-//    , m_FinishedRequest(this, &HTML::BrowserFinishedRequest)
-//    , m_LinkInNewTab(this, &HTML::BrowserOpenNewTab)
-//    , m_ChangeTitle(this, &HTML::BrowserSetHTMLTitle)
-//    , m_NewWindow(this, &HTML::BrowserPopupHTMLWindow)
-//    , m_FileLoadDialog(this, &HTML::BrowserFileLoadDialog)
-//    , m_SearchResults(this, &HTML::BrowserSearchResults)
-//    , m_CloseBrowser(this, &HTML::BrowserClose)
-//    , m_HorizScroll(this, &HTML::BrowserHorizontalScrollBarSizeResponse)
-//    , m_VertScroll(this, &HTML::BrowserVerticalScrollBarSizeResponse)
-//    , m_LinkAtPosResp(this, &HTML::BrowserLinkAtPositionResponse)
-//    , m_JSAlert(this, &HTML::BrowserJSAlert)
-//    , m_JSConfirm(this, &HTML::BrowserJSConfirm)
-//    , m_CanGoBackForward(this, &HTML::BrowserCanGoBackandForward)
-//    , m_SetCursor(this, &HTML::BrowserSetCursor)
-//    , m_StatusText(this, &HTML::BrowserStatusText)
-//    , m_ShowTooltip(this, &HTML::BrowserShowToolTip)
-//    , m_UpdateTooltip(this, &HTML::BrowserUpdateToolTip)
-//    , m_HideTooltip(this, &HTML::BrowserHideToolTip)
-//#endif
+#ifndef NO_STEAM
+    , m_URLChanged(this, &HTML::BrowserURLChanged)
+    , m_FinishedRequest(this, &HTML::BrowserFinishedRequest)
+    , m_LinkInNewTab(this, &HTML::BrowserOpenNewTab)
+    , m_ChangeTitle(this, &HTML::BrowserSetHTMLTitle)
+    , m_NewWindow(this, &HTML::BrowserPopupHTMLWindow)
+    , m_FileLoadDialog(this, &HTML::BrowserFileLoadDialog)
+    , m_SearchResults(this, &HTML::BrowserSearchResults)
+    , m_CloseBrowser(this, &HTML::BrowserClose)
+    , m_HorizScroll(this, &HTML::BrowserHorizontalScrollBarSizeResponse)
+    , m_VertScroll(this, &HTML::BrowserVerticalScrollBarSizeResponse)
+    , m_LinkAtPosResp(this, &HTML::BrowserLinkAtPositionResponse)
+    , m_JSAlert(this, &HTML::BrowserJSAlert)
+    , m_JSConfirm(this, &HTML::BrowserJSConfirm)
+    , m_CanGoBackForward(this, &HTML::BrowserCanGoBackandForward)
+    , m_SetCursor(this, &HTML::BrowserSetCursor)
+    , m_StatusText(this, &HTML::BrowserStatusText)
+    , m_ShowTooltip(this, &HTML::BrowserShowToolTip)
+    , m_UpdateTooltip(this, &HTML::BrowserUpdateToolTip)
+    , m_HideTooltip(this, &HTML::BrowserHideToolTip)
+#endif
 {
 	m_iHTMLTextureID = 0;
 	m_bCanGoBack = false;
@@ -158,19 +157,19 @@ HTML::HTML(Panel *parent, const char *name, bool allowJavaScript, bool bPopupWin
 
 	m_unBrowserHandle = INVALID_HTMLBROWSER;
 
-//#ifndef NO_STEAM
-//	m_SteamAPIContext.Init();
-//	if ( m_SteamAPIContext.SteamHTMLSurface() )
-//	{
-//		m_SteamAPIContext.SteamHTMLSurface()->Init();
-//		SteamAPICall_t hSteamAPICall = m_SteamAPIContext.SteamHTMLSurface()->CreateBrowser( HL1_USER_AGENT, NULL );
-//		m_SteamCallResultBrowserReady.Set( hSteamAPICall, this, &HTML::OnBrowserReady );
-//	}
-//	else
-//	{
-//		Warning("Unable to access SteamHTMLSurface\n");
-//	}
-//#endif
+#ifndef NO_STEAM
+	m_SteamAPIContext.Init();
+	if ( m_SteamAPIContext.SteamHTMLSurface() )
+	{
+		m_SteamAPIContext.SteamHTMLSurface()->Init();
+		SteamAPICall_t hSteamAPICall = m_SteamAPIContext.SteamHTMLSurface()->CreateBrowser( HL1_USER_AGENT, NULL );
+		m_SteamCallResultBrowserReady.Set( hSteamAPICall, this, &HTML::OnBrowserReady );
+	}
+	else
+	{
+		printf("[VGUI2-HTML] Unable to access SteamHTMLSurface\n");
+	}
+#endif
 
 	m_iScrollBorderX=m_iScrollBorderY=0;
 	m_bScrollBarEnabled = true;
@@ -311,9 +310,10 @@ void HTML::PerformLayout()
 {
 	BaseClass::PerformLayout();
 	Repaint();
-	int vbarInset = _vbar->IsVisible() ? _vbar->GetWide() : 0;
+	int vbarInset = (_vbar && _vbar->IsVisible()) ? _vbar->GetWide() : 0;
 	int maxw = GetWide() - vbarInset;
-	m_pInteriorPanel->SetBounds( 0, 0, maxw, GetTall() );
+	if ( m_pInteriorPanel )
+		m_pInteriorPanel->SetBounds( 0, 0, maxw, GetTall() );
 
 	IScheme *pClientScheme = vgui2::scheme()->GetIScheme( vgui2::scheme()->GetScheme( "ClientScheme" ) );
 
@@ -321,28 +321,33 @@ void HTML::PerformLayout()
 	int iSearchInsetX = 5;
 	int iSearchTall = 24;
 	int iSearchWide = 150;
-	const char *resourceString = pClientScheme->GetResourceString( "HTML.SearchInsetY");
-	if ( resourceString )
+	const char *resourceString = (pClientScheme != NULL) ? pClientScheme->GetResourceString( "HTML.SearchInsetY" ) : NULL;
+	if ( resourceString && *resourceString )
 	{
 		iSearchInsetY = atoi(resourceString);
 	}
-	resourceString = pClientScheme->GetResourceString( "HTML.SearchInsetX");
-	if ( resourceString )
+	resourceString = (pClientScheme != NULL) ? pClientScheme->GetResourceString( "HTML.SearchInsetX" ) : NULL;
+	if ( resourceString && *resourceString )
 	{
 		iSearchInsetX = atoi(resourceString);
 	}
-	resourceString = pClientScheme->GetResourceString( "HTML.SearchTall");
-	if ( resourceString )
+	resourceString = (pClientScheme != NULL) ? pClientScheme->GetResourceString( "HTML.SearchTall" ) : NULL;
+	if ( resourceString && *resourceString )
 	{
 		iSearchTall = atoi(resourceString);
 	}
-	resourceString = pClientScheme->GetResourceString( "HTML.SearchWide");
-	if ( resourceString )
+	resourceString = (pClientScheme != NULL) ? pClientScheme->GetResourceString( "HTML.SearchWide" ) : NULL;
+	if ( resourceString && *resourceString )
 	{
 		iSearchWide = atoi(resourceString);
 	}
 
-	m_pFindBar->SetBounds( GetWide() - iSearchWide - iSearchInsetX - vbarInset, m_pFindBar->BIsHidden() ? -1*iSearchTall-5: iSearchInsetY, iSearchWide, iSearchTall );
+	if ( m_pFindBar )
+	{
+		m_pFindBar->SetBounds( GetWide() - iSearchWide - iSearchInsetX - vbarInset,
+			m_pFindBar->BIsHidden() ? -1*iSearchTall-5 : iSearchInsetY,
+			iSearchWide, iSearchTall );
+	}
 }
 
 
@@ -1292,8 +1297,7 @@ bool HTML::OnStartRequest( const char *url, const char *target, const char *pchP
 	return true;
 }
 
-//#ifndef NO_STEAM
-#if 0
+#ifndef NO_STEAM
 //-----------------------------------------------------------------------------
 // Purpose: browser went to a new url
 //-----------------------------------------------------------------------------
@@ -1310,6 +1314,7 @@ void HTML::BrowserURLChanged( HTML_URLChanged_t *pCmd )
 
 	OnURLChanged( m_sCurrentURL, pCmd->pchPostData, pCmd->bIsRedirect );
 }
+#endif
 
 
 //-----------------------------------------------------------------------------
@@ -1707,8 +1712,6 @@ void HTML::BrowserJSConfirm( HTML_JSConfirm_t *pCmd )
 	pDlg->SetCancelCommand( new KeyValues( "DismissJSDialog", "result", false ) );
 	pDlg->DoModal();
 }
-#endif
-//#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: got an answer from the dialog, tell cef
@@ -1719,8 +1722,7 @@ void HTML::DismissJSDialog( int bResult )
 		m_SteamAPIContext.SteamHTMLSurface()->JSDialogResponse( m_unBrowserHandle, bResult );
 };
 
-//#ifndef NO_STEAM
-#if 0
+#ifndef NO_STEAM
 //----------------------------------------------------------------------------- 
 // Purpose: browser telling us the state of back and forward buttons
 //-----------------------------------------------------------------------------
@@ -1730,7 +1732,6 @@ void HTML::BrowserCanGoBackandForward( HTML_CanGoBackAndForward_t *pCmd )
 	m_bCanGoForward = pCmd->bCanGoForward;
 }
 #endif
-//#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: ask the browser for what is at this x,y

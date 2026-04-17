@@ -25,12 +25,12 @@
 #include <alloca.h>
 #endif
 
-//OSX has this elsewhere. - Solokiller
-#ifndef OSX
-#include <malloc.h>
-#else
+// macOS exposes malloc declarations via stdlib.h + malloc/malloc.h instead of malloc.h.
+#if defined(__APPLE__) || defined(OSX)
 #include <stdlib.h>
 #include <malloc/malloc.h>
+#else
+#include <malloc.h>
 #endif
 #include <new>
 

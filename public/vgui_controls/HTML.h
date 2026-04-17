@@ -160,8 +160,8 @@ protected:
 	vgui2::Menu *m_pContextMenu;
 
 private:
-// Temporarily disable Steam callback wiring for HTML.
-#if 0
+// Steam callback wiring for HTML.
+#ifndef NO_STEAM
 	// STEAM_CALLBACK( HTML, BrowserNeedsPaint, HTML_NeedsPaint_t, m_NeedsPaint );
 	// STEAM_CALLBACK( HTML, BrowserStartRequest, HTML_StartRequest_t, m_StartRequest );
 	STEAM_CALLBACK( HTML, BrowserURLChanged, HTML_URLChanged_t, m_URLChanged );

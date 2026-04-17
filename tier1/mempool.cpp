@@ -6,7 +6,7 @@
 
 #include "mempool.h"
 #include <stdio.h>
-#ifdef OSX
+#if defined(__APPLE__) || defined(OSX)
 #include <stdlib.h>
 #else
 #include <malloc.h>
@@ -312,5 +312,4 @@ void CUtlMemoryPool::Free( void *memBlock )
 	// the list head is now the new block
 	m_pHeadOfFreeList = memBlock;
 }
-
 

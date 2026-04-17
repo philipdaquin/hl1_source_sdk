@@ -462,15 +462,19 @@ void Button::ApplySchemeSettings(IScheme *pScheme)
 
 	_defaultFgColor = GetSchemeColor("Button.TextColor", Color(255, 255, 255, 255), pScheme);
 	_defaultBgColor = GetSchemeColor("Button.BgColor", Color(0, 0, 0, 255), pScheme);
+	_defaultBgColor = GetSchemeColor("ButtonBgColor", _defaultBgColor, pScheme);
 
 	_armedFgColor = GetSchemeColor("Button.ArmedTextColor", _defaultFgColor, pScheme);
 	_armedBgColor = GetSchemeColor("Button.ArmedBgColor", _defaultBgColor, pScheme);
+	_armedBgColor = GetSchemeColor("ButtonArmedBgColor", _armedBgColor, pScheme);
 
 	_selectedFgColor = GetSchemeColor("Button.SelectedTextColor", _selectedFgColor, pScheme);
 	_selectedBgColor = GetSchemeColor("Button.SelectedBgColor", _selectedBgColor, pScheme);
+	_selectedBgColor = GetSchemeColor("ButtonSelectedBgColor", _selectedBgColor, pScheme);
 
 	_depressedFgColor = GetSchemeColor("Button.DepressedTextColor", _defaultFgColor, pScheme);
 	_depressedBgColor = GetSchemeColor("Button.DepressedBgColor", _defaultBgColor, pScheme);
+	_depressedBgColor = GetSchemeColor("ButtonDepressedBgColor", _depressedBgColor, pScheme);
 	_keyboardFocusColor = GetSchemeColor("Button.FocusBorderColor", Color(0,0,0,255), pScheme);
 
 	_blinkFgColor = GetSchemeColor("Button.BlinkColor", Color(255, 155, 0, 255), pScheme);

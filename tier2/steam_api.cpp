@@ -222,6 +222,80 @@ bool SteamAPI_IsAvailable()
 #endif
 }
 
+#if defined(__EMSCRIPTEN__)
+void S_CALLTYPE SteamAPI_RegisterCallback(class CCallbackBase *pCallback, int iCallback)
+{
+	REFERENCE(pCallback);
+	REFERENCE(iCallback);
+}
+
+void S_CALLTYPE SteamAPI_UnregisterCallback(class CCallbackBase *pCallback)
+{
+	REFERENCE(pCallback);
+}
+
+void S_CALLTYPE SteamAPI_RunCallbacks()
+{
+}
+
+bool S_CALLTYPE SteamAPI_InitSafe()
+{
+	return false;
+}
+
+bool S_CALLTYPE SteamAPI_Init()
+{
+	return false;
+}
+
+void S_CALLTYPE SteamAPI_Shutdown()
+{
+}
+
+bool S_CALLTYPE SteamAPI_IsSteamRunning()
+{
+	return false;
+}
+
+bool S_CALLTYPE SteamAPI_RestartAppIfNecessary( uint32 unOwnAppID )
+{
+	REFERENCE(unOwnAppID);
+	return false;
+}
+
+void S_CALLTYPE SteamAPI_WriteMiniDump( uint32 uStructuredExceptionCode, void *pvExceptionInfo, uint32 uBuildID )
+{
+	REFERENCE(uStructuredExceptionCode);
+	REFERENCE(pvExceptionInfo);
+	REFERENCE(uBuildID);
+}
+
+void S_CALLTYPE SteamAPI_SetMiniDumpComment( const char *pchMsg )
+{
+	REFERENCE(pchMsg);
+}
+
+ISteamClient *S_CALLTYPE SteamClient()
+{
+	return nullptr;
+}
+
+ISteamHTMLSurface *S_CALLTYPE SteamHTMLSurface()
+{
+	return nullptr;
+}
+
+HSteamPipe SteamAPI_GetHSteamPipe()
+{
+	return 0;
+}
+
+HSteamUser SteamAPI_GetHSteamUser()
+{
+	return 0;
+}
+#endif
+
 #ifdef SOURCE_SDK_MIN_STEAM_API
 void S_CALLTYPE SteamAPI_RegisterCallResult(class CCallbackBase *pCallback, SteamAPICall_t hAPICall)
 {

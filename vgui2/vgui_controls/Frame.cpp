@@ -528,11 +528,11 @@ namespace vgui2
 		{
 			Button::ApplySchemeSettings(pScheme);
 			
-			_enabledFgColor = GetSchemeColor("FrameTitleButton.FgColor", pScheme);
-			_enabledBgColor = GetSchemeColor("FrameTitleButton.BgColor", pScheme);
+			_enabledFgColor = GetSchemeColor("FrameTitleButton.FgColor", GetSchemeColor("TitleButtonFgColor", pScheme), pScheme);
+			_enabledBgColor = GetSchemeColor("FrameTitleButton.BgColor", GetSchemeColor("TitleButtonBgColor", pScheme), pScheme);
 
-			_disabledFgColor = GetSchemeColor("FrameTitleButton.DisabledFgColor", pScheme);
-			_disabledBgColor = GetSchemeColor("FrameTitleButton.DisabledBgColor", pScheme);
+			_disabledFgColor = GetSchemeColor("FrameTitleButton.DisabledFgColor", GetSchemeColor("TitleButtonDisabledFgColor", pScheme), pScheme);
+			_disabledBgColor = GetSchemeColor("FrameTitleButton.DisabledBgColor", GetSchemeColor("TitleButtonDisabledBgColor", pScheme), pScheme);
 			
 			_brightBorder = pScheme->GetBorder("TitleButtonBorder");
 			_depressedBorder = pScheme->GetBorder("TitleButtonDepressedBorder");
@@ -658,12 +658,12 @@ public:
 		}
 	}
 
-	virtual void ApplySchemeSettings(IScheme *pScheme)
+		virtual void ApplySchemeSettings(IScheme *pScheme)
 	{
 		BaseClass::ApplySchemeSettings(pScheme);
 
-		_enCol = GetSchemeColor("FrameSystemButton.FgColor", pScheme);
-		_disCol = GetSchemeColor("FrameSystemButton.BgColor", pScheme);
+		_enCol = GetSchemeColor("FrameSystemButton.FgColor", GetSchemeColor("TitleButtonFgColor", pScheme), pScheme);
+		_disCol = GetSchemeColor("FrameSystemButton.BgColor", GetSchemeColor("TitleButtonDisabledBgColor", pScheme), pScheme);
 		
 		const char *pEnabledImage = m_EnabledImage.Length() ? m_EnabledImage.Get() : 
 			pScheme->GetResourceString( "FrameSystemButton.Icon" );
@@ -1386,6 +1386,12 @@ void Frame::InternalSetTitle(const char *title)
 void Frame::SetMoveable(bool state)
 {
 	_moveable=state;
+#if !defined( _X360 )
+	if (_captionGrip)
+	{
+		_captionGrip->SetVisible(_drawTitleBar && _moveable);
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1396,6 +1402,26 @@ void Frame::SetSizeable(bool state)
 	_sizeable=state;
 	
 	SetupResizeCursors();
+#if !defined( _X360 )
+	const bool chromeVisible = _drawTitleBar && _sizeable;
+	_topGrip->SetVisible(chromeVisible);
+	_bottomGrip->SetVisible(chromeVisible);
+	_leftGrip->SetVisible(chromeVisible);
+	_rightGrip->SetVisible(chromeVisible);
+	_topLeftGrip->SetVisible(chromeVisible);
+	_topRightGrip->SetVisible(chromeVisible);
+	_bottomLeftGrip->SetVisible(chromeVisible);
+	_bottomRightGrip->SetVisible(chromeVisible);
+	_topGrip->SetPaintEnabled(chromeVisible);
+	_bottomGrip->SetPaintEnabled(chromeVisible);
+	_leftGrip->SetPaintEnabled(chromeVisible);
+	_rightGrip->SetPaintEnabled(chromeVisible);
+	_topLeftGrip->SetPaintEnabled(chromeVisible);
+	_topRightGrip->SetPaintEnabled(chromeVisible);
+	_bottomLeftGrip->SetPaintEnabled(chromeVisible);
+	_bottomRightGrip->SetPaintEnabled(chromeVisible);
+	_bottomRightGrip->SetPaintBackgroundEnabled(chromeVisible);
+#endif
 }
 
 // When moving via caption, don't let any part of window go outside parent's bounds
@@ -1589,6 +1615,8 @@ bool Frame::GetDefaultScreenPosition(int &x, int &y, int &wide, int &tall)
 //-----------------------------------------------------------------------------
 void Frame::PaintBackground()
 {
+	// printf("[VGUI2-CLIENT] Frame::PaintBackground ENTER this=%p name='%s' drawTitleBar=%d size=(%d,%d)\n",
+	// 	this, GetName() ? GetName() : "<null>", _drawTitleBar ? 1 : 0, GetWide(), GetTall());
 	// take the panel with focus and check up tree for this panel
 	// if you find it, than some child of you has the focus, so
 	// you should be focused
@@ -1639,6 +1667,8 @@ void Frame::PaintBackground()
 			_title->Paint();
 		}
 	}
+	// printf("[VGUI2-CLIENT] Frame::PaintBackground EXIT this=%p name='%s'\n",
+	// 	this, GetName() ? GetName() : "<null>");
 }
 
 //-----------------------------------------------------------------------------
@@ -1650,9 +1680,10 @@ void Frame::ApplySchemeSettings(IScheme *pScheme)
 	BaseClass::ApplySchemeSettings(pScheme);
 	
 	SetOverridableColor( &_titleBarFgColor, GetSchemeColor("FrameTitleBar.TextColor", pScheme) );
-	SetOverridableColor( &_titleBarBgColor, GetSchemeColor("FrameTitleBar.BgColor", pScheme) );
-	SetOverridableColor( &_titleBarDisabledFgColor, GetSchemeColor("FrameTitleBar.DisabledTextColor", pScheme) );
-	SetOverridableColor( &_titleBarDisabledBgColor, GetSchemeColor("FrameTitleBar.DisabledBgColor", pScheme) );
+	SetOverridableColor( &_titleBarFgColor, GetSchemeColor("FrameTitleBar.TextColor", GetSchemeColor("TitleBarFgColor", pScheme), pScheme) );
+	SetOverridableColor( &_titleBarBgColor, GetSchemeColor("FrameTitleBar.BgColor", GetSchemeColor("TitleBarBgColor", pScheme), pScheme) );
+	SetOverridableColor( &_titleBarDisabledFgColor, GetSchemeColor("FrameTitleBar.DisabledTextColor", GetSchemeColor("TitleBarDisabledFgColor", pScheme), pScheme) );
+	SetOverridableColor( &_titleBarDisabledBgColor, GetSchemeColor("FrameTitleBar.DisabledBgColor", GetSchemeColor("TitleBarDisabledBgColor", pScheme), pScheme) );
 
 	const char *font = NULL;
 	if ( m_bSmallCaption )
@@ -1697,8 +1728,8 @@ void Frame::ApplySchemeSettings(IScheme *pScheme)
 	m_flTransitionEffectTime = atof(pScheme->GetResourceString("Frame.TransitionEffectTime"));
 	m_flFocusTransitionEffectTime = atof(pScheme->GetResourceString("Frame.FocusTransitionEffectTime"));
 
-	SetOverridableColor( &m_InFocusBgColor, pScheme->GetColor("Frame.BgColor", GetBgColor()) );
-	SetOverridableColor( &m_OutOfFocusBgColor, pScheme->GetColor("Frame.OutOfFocusBgColor", m_InFocusBgColor) );
+	SetOverridableColor( &m_InFocusBgColor, pScheme->GetColor("Frame.BgColor", pScheme->GetColor("BgColor", GetBgColor())) );
+	SetOverridableColor( &m_OutOfFocusBgColor, pScheme->GetColor("Frame.OutOfFocusBgColor", pScheme->GetColor("BgColor", m_InFocusBgColor)) );
 
 	const char *resourceString = pScheme->GetResourceString("Frame.ClientInsetX");
 	if ( resourceString )
@@ -2270,6 +2301,28 @@ void Frame::SetTitleBarVisible( bool state )
 	SetMinimizeButtonVisible(state);
 	SetMaximizeButtonVisible(state);
 	SetCloseButtonVisible(state);
+#if !defined( _X360 )
+	const bool titleChromeVisible = _drawTitleBar && _moveable;
+	const bool resizeChromeVisible = _drawTitleBar && _sizeable;
+	_captionGrip->SetVisible(titleChromeVisible);
+	_topGrip->SetVisible(resizeChromeVisible);
+	_bottomGrip->SetVisible(resizeChromeVisible);
+	_leftGrip->SetVisible(resizeChromeVisible);
+	_rightGrip->SetVisible(resizeChromeVisible);
+	_topLeftGrip->SetVisible(resizeChromeVisible);
+	_topRightGrip->SetVisible(resizeChromeVisible);
+	_bottomLeftGrip->SetVisible(resizeChromeVisible);
+	_bottomRightGrip->SetVisible(resizeChromeVisible);
+	_topGrip->SetPaintEnabled(resizeChromeVisible);
+	_bottomGrip->SetPaintEnabled(resizeChromeVisible);
+	_leftGrip->SetPaintEnabled(resizeChromeVisible);
+	_rightGrip->SetPaintEnabled(resizeChromeVisible);
+	_topLeftGrip->SetPaintEnabled(resizeChromeVisible);
+	_topRightGrip->SetPaintEnabled(resizeChromeVisible);
+	_bottomLeftGrip->SetPaintEnabled(resizeChromeVisible);
+	_bottomRightGrip->SetPaintEnabled(resizeChromeVisible);
+	_bottomRightGrip->SetPaintBackgroundEnabled(resizeChromeVisible);
+#endif
 }
 
 //-----------------------------------------------------------------------------
